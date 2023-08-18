@@ -6,7 +6,7 @@ from typing import Any, List, Tuple, Callable, Protocol
 import numpy as np
 
 from box.dimension import Dim
-from box.constrains import Constraint
+from box.constrains import Constraint, Transform
 
 class Plane(enum.Enum):
     XY = 1
@@ -46,9 +46,19 @@ class Line:
         else:
             self.orientation = Orientation.Other
             self.level = np.nan
+    
+    def transform(self, transform: Transform) -> Line:
+        line = transform(points=self.line)
+        new_line = Line(line[0], line[1], self.move_to)
+        new_line.dim = self.dim
+        return new_line        
 
     def __str__(self) -> str:
-        return f"<Line: [{self.start}, {self.end}] {self.orientation} dim: {self.length()}>"
+        if self.is_construction:
+            return f"<Line: [{self.start}, {self.end}]* {self.orientation} dim: {self.length()}>"
+        else:
+            return f"<Line: [{self.start}, {self.end}]  {self.orientation} dim: {self.length()}>"
+
 
     def __repr__(self) -> str:
         return self.__str__()
@@ -197,6 +207,19 @@ class Path:
 
     def __len__(self) -> int:
         return len(self.points)
+    
+    def transform(self, t: Transform) -> Path:
+        """Create copy of path with transform applied to `points`, `lines` and `constrains` (if the contain lines)"""
+      
+        points = t(points=np.array(self.points))
+        lines = [l.transform(t) for l in self.lines]
+        constraints = [c.apply_transform(t) for c in self.constraints]
+        new_path = Path()
+        new_path.points = points
+        new_path.lines = lines
+        new_path.constraints = constraints
+        return  new_path
+
 
     def get_loction(self) -> np.array():
         return  self.points[-1]

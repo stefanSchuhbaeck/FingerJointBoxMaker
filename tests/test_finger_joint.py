@@ -2,12 +2,15 @@ import unittest
 
 import sys
 import os
-sys.path.insert(0,os.path.join(os.path.dirname(__file__),"../.."))
 
+sys.path.insert(0,os.path.join(os.path.dirname(__file__),"../.."))
+import numpy as np
 
 from box.joint import SimpleBox
 from box.geometry import Edge, EdgeTyp, Path
 from box.dimension import Dim
+from box.transform import reflect_on_x_axis
+
 
 class TestFinger(unittest.TestCase):
     def setUp(self) -> None:
@@ -244,8 +247,13 @@ def test_path_building():
         thickness=Dim(3.0, name="thickness", unit="mm")
     )
     p = b.build_face(b.faces[1])
+    return p
     print(p)
 
 if __name__ == "__main__":
     # unittest.main()
-    test_path_building()
+    p = test_path_building()
+    p2 = p.transform(reflect_on_x_axis)
+    # todo test transformation for lines and consstrains!
+
+    print("hi")

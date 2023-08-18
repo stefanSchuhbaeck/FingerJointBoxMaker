@@ -6,13 +6,18 @@ import numpy as np
 from dataclasses import dataclass, field
 
 from box.dimension import Dim
-from box.constrains import Constraint
+from box.constrains import Constraint, Transform
 from box.geometry import Edge, Face, Line, Orientation, Path, Plane
+from box.transform import reflect_on_x_axis
 
 class ColiniarConstraint:
 
     def __init__(self, lines: List[Line]) -> None:
         self.lines: List[Line] = lines
+
+    def apply_transform(self, transform: Transform) -> Constraint:
+        new_lines = [l.transform(transform) for l in self.lines]
+        return ColiniarConstraint(new_lines)
 
     def get_name(self) -> str:
         return Constraint.Coliniear
@@ -24,6 +29,10 @@ class HorizontalConstrain:
 
     def __init__(self, *lines) -> None:
         self.lines: List[Line] = lines
+    
+    def apply_transform(self, transform: Transform) -> Constraint:
+        new_lines = [l.transform(transform) for l in self.lines]
+        return HorizontalConstrain(*new_lines)
 
     def get_name(self) -> str:
         return Constraint.Horizontal
@@ -36,6 +45,10 @@ class VerticalConstrain:
     def __init__(self, *lines) -> None:
         self.lines: List[Line] = lines
 
+    def apply_transform(self, transform: Transform) -> Constraint:
+        new_lines = [l.transform(transform) for l in self.lines]
+        return VerticalConstrain(*new_lines)
+
     def get_name(self) -> str:
         return Constraint.Vertical
     
@@ -46,6 +59,11 @@ class PerpendicularConstraint:
     def __init__(self, l1: Line, l2: Line) -> None:
         self.l1: Line = l1
         self.l2: Line = l2
+
+    def apply_transform(self, transform: Transform) -> Constraint:
+        return PerpendicularConstraint(
+            self.l1.transform(transform), 
+            self.l2.transform(transform))
     
     def get_name(self) -> str:
         return  Constraint.Perpendicular
@@ -59,6 +77,11 @@ class EqualConstraint:
     def __init__(self, base_line: Line = None, lines: List[Line]=None) -> None:
         self.base_line: Line = base_line
         self.lines: List[Line] = [] if lines is None else lines
+    
+    def apply_transform(self, transform: Transform) -> Constraint:
+        return EqualConstraint(
+            self.base_line.transform(transform), 
+            [l.transform(transform) for l in self.lines])
     
     def get_name(self) -> str:
         return  Constraint.EqualConstraint
@@ -272,6 +295,9 @@ def build_front_back(
         p2 = path.lines[i+2]
         path.appen_constraint(PerpendicularConstraint(p1, p2))
     
+    # fix for fusion 360 api fuckup with sktech coordinate systems
+    path = path.transform(reflect_on_x_axis)
+
     return path
 
 
