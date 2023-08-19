@@ -39,11 +39,7 @@ def replace_dimensions_with_equal_constrains(path: Path, face: Face) -> Path:
 
 def sktech_offset(path: Path, face: Face,  offset_x: Dim = None, offset_y: Dim = None) -> Path:
     if offset_x is None and offset_y is None:
-        # if face.name == "sides_left_right":
-            # path.append_constraint(HorizontalConstrain(path.lines[0]))
-        # path.append_constraint(VerticalConstrain(path.lines[0]))
         pass
-    
     else:
         offset = path.get_origin_offset()
         if (offset_x is not None and offset[0] != offset_x) or(offset_y is not None and offset[1] != offset_y):
@@ -57,13 +53,6 @@ def sktech_offset(path: Path, face: Face,  offset_x: Dim = None, offset_y: Dim =
             new_path.v_dim(offset_y).as_construciont_line()
             new_path.append_constraint(VerticalConstrain(new_path.last_line()))
         path = new_path.concat(path)
-
-        # # #first non construction line
-        # line = path.lines[len(new_path)]
-        # if line.is_horizontal():
-        #     path.append_constraint(HorizontalConstrain(line))
-        # else:
-        #     path.append_constraint(VerticalConstrain(line))
         
     return path
 
@@ -125,18 +114,22 @@ class SimpleBox:
             finger=length_f_dim, 
             finger_count=length_finger_count,
             notch=length_n_dim,
-            notch_count=length_finger_count.new_relative(-1, "length_finger_count - 1"))
+            notch_count=length_finger_count.new_relative(-1, "length_finger_count - 1"),
+            thickness=thickness)
         
         width = Edge.as_width(
             finger=width_f_dim, 
             finger_count=width_finger_count,
             notch=width_n_dim,
-            notch_count=width_finger_count.new_relative(-1, "width_finger_count - 1"))
+            notch_count=width_finger_count.new_relative(-1, "width_finger_count - 1"),
+            thickness=thickness)
+        
         height = Edge.as_height(
             finger=height_f_dim, 
             finger_count=height_finger_count,
             notch=height_n_dim,
-            notch_count=height_finger_count.new_relative(-1, "height_finger_count -1 "))
+            notch_count=height_finger_count.new_relative(-1, "height_finger_count -1 "),
+            thickness=thickness)
 
         return cls.from_edges(length, width, height, thickness)               
 
@@ -146,9 +139,9 @@ class SimpleBox:
             length=length,
             width=width,
             height=height,
-            bottom_top=Face(length.as_positive(), width.as_positive(), thickness, name="bottom_top", plane=Plane.XY),
-            front_back=Face(length.as_negative(), height.as_negative(), thickness, name="front_back", plane=Plane.XZ),
-            left_right= Face(height.as_positive(), width.as_negative(), thickness, name="sides_left_right", plane=Plane.YZ),
+            bottom_top=Face.full_joint_face(length.as_positive(), width.as_positive(), name="bottom_top", plane=Plane.XY),
+            front_back=Face.full_joint_face(length.as_negative(), height.as_negative(), name="front_back", plane=Plane.XZ),
+            left_right= Face.full_joint_face(height.as_positive(), width.as_negative(), name="sides_left_right", plane=Plane.YZ),
             thickness=thickness,
         )
         # set constraint order

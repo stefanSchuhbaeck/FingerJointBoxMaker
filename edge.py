@@ -1,9 +1,41 @@
 from __future__ import annotations
 import enum
-from typing import Protocol
+from typing import Any, Protocol, List, Tuple
 
 from box.dimension import Dim
-from box.geometry import Path
+from box.geometry import Path, PathConsumer, PathBuilder, PathConsumerByTransfrom
+from box.transform import Transform, create_transform
+
+class EdgePathBuilder:
+
+    def __init__(self, edge: Edge) -> None:
+        self.edge = edge
+        self.path_consumer: List[PathConsumer] = []
+        self.path_transforms: List[PathConsumerByTransfrom] = []
+        self.callback_order: List[Tuple] = []
+    
+    def add_path_consumer(self, consumer: PathConsumer) -> EdgePathBuilder:
+        """append path consumer."""
+        self.path_consumer.append(consumer)
+        self.callback_order.append((self.path_consumer, len(self.path_consumer)-1))
+        return self
+
+    def add_transfrom_mat(self, *mat) -> EdgePathBuilder:
+        return self.add_transfrom(create_transform(*mat))
+
+    def add_transfrom(self, transfrom: Transform) -> EdgePathBuilder:
+        """append transforms."""
+        self.path_transforms.append(PathConsumerByTransfrom(transfrom))
+        self.callback_order.append((self.path_transforms, len(self.path_transforms)-1))
+        return self
+
+    # path builder
+    def __call__(self) -> Path:
+        """create path"""
+        path = self.edge.make_path()
+        for calback, index in  self.callback_order:
+            path = calback[index](path)
+        return path
 
 
 class EdgeTyp(enum.Enum):
@@ -28,7 +60,7 @@ class EdgeFoo(Protocol):
 # todo: one kind of edge that build finger joints. 
 class Edge(): 
 
-    def __init__(self, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim = Dim(3, "thickness", "mm")) -> None:
+    def __init__(self, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim) -> None:
         super().__init__()
         if finger_count.int_value == notch_count.int_value:
             raise ValueError(f"Invalid edge. finger and notch count cannot be the equal. got {finger_count} and {notch_count}")
@@ -41,9 +73,11 @@ class Edge():
         self.notch_count: Dim = notch_count     ## todo notch count is dependent on finger count (off by one in either direction!.)
         self.thickness: Dim = thickness
 
+        self.path_transforms: List[Transform]
+
     @classmethod
-    def as_length(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim) -> None:
-        ret = cls(finger, finger_count, notch, notch_count)
+    def as_length(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim) -> None:
+        ret = cls(finger, finger_count, notch, notch_count, thickness)
         if ret.is_positive_edge():
             ret.edge_type = EdgeTyp.LENGTH_POSTIVE
         else:
@@ -51,8 +85,8 @@ class Edge():
         return ret
 
     @classmethod
-    def as_width(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim) -> None:
-        ret = cls(finger, finger_count, notch, notch_count)
+    def as_width(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim) -> None:
+        ret = cls(finger, finger_count, notch, notch_count, thickness)
         if ret.is_positive_edge():
             ret.edge_type = EdgeTyp.WIDTH_POSTIVE
         else:
@@ -60,8 +94,8 @@ class Edge():
         return ret
 
     @classmethod
-    def as_height(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim) -> None:
-        ret = cls(finger, finger_count, notch, notch_count)
+    def as_height(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim) -> None:
+        ret = cls(finger, finger_count, notch, notch_count, thickness)
         if ret.is_positive_edge():
             ret.edge_type = EdgeTyp.HEIGHT_POSITIVE
         else:
@@ -90,7 +124,8 @@ class Edge():
             finger=self.notch,
             finger_count=self.notch_count,
             notch=self.finger,
-            notch_count=self.finger_count
+            notch_count=self.finger_count,
+            thickness=self.thickness
             )
         e.edge_type = EdgeTyp(-1*(self.edge_type.value))
         return e
@@ -120,35 +155,35 @@ class Edge():
         else:
             return self.finger_count.int_value
 
-    def make_path(self, thickness: Dim) -> Path:
+    def make_path(self) -> Path:
         path: Path = Path.zero()
 
         for i in range(self.rep_count()):
             if self.is_positive_edge():
                 if i == 0 and not self.edge_type.full_length():
-                    path.h_dim(self.finger - thickness)
+                    path.h_dim(self.finger - self.thickness)
                 else:
                     path.h_dim(self.finger)
-                path.v_dim(thickness)
+                path.v_dim(self.thickness)
                 path.h_dim(self.notch)
-                path.v_dim(-thickness)
+                path.v_dim(-self.thickness)
             else:
                 if i == 0 and  not self.edge_type.full_length():
-                    path.h_dim(self.notch - thickness)
+                    path.h_dim(self.notch - self.thickness)
                 else:
                     path.h_dim(self.notch)
-                path.v_dim(-thickness)
+                path.v_dim(-self.thickness)
                 path.h_dim(self.finger)
-                path.v_dim(thickness)
+                path.v_dim(self.thickness)
         if self.is_positive_edge():
             if self.edge_type.full_length():
                 path.h_dim(self.finger)
             else:
-                path.h_dim(self.finger - thickness)
+                path.h_dim(self.finger - self.thickness)
         else:
             if self.edge_type.full_length():
                path.h_dim(self.notch)
             else:
-                path.h_dim(self.notch - thickness)
+                path.h_dim(self.notch - self.thickness)
         return path
 

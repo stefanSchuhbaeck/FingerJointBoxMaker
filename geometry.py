@@ -110,6 +110,26 @@ class Line:
     def end(self):
         return self.line[1]
 
+class PathConsumer(Protocol):
+
+    def __call__(self, path: Path) -> Path:
+        """Consume path object and apply changes."""
+        ...
+
+class PathBuilder(Protocol):
+
+    def __call__(self) -> Path:
+        """Produce a path object of some sort"""
+        ...
+
+class PathConsumerByTransfrom():
+
+    def __init__(self, transfrom: Transform) -> None:
+        self.transfrom = transfrom
+
+    def __call__(self, path: Path) -> Path:
+        return path.transform(self.transfrom)
+
 
 class Path:
 
@@ -342,7 +362,7 @@ class Path:
         start_end_equal = all(self.points[-1] == path.points[0])
 
         if not create_connecting_line and not start_end_equal:
-            raise ValueError("Paths do not have matching end-start points and create_connecting_linei is false")
+            raise ValueError("Paths do not have matching end-start points and create_connecting_line is false")
 
         p1: Path = self.copy()
         p2: Path = path.copy()
