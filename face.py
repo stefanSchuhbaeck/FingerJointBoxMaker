@@ -37,7 +37,7 @@ class FacePathBuilder:
 class Face:
 
     @classmethod
-    def full_joint_face(cls, e1: Edge, e2: Edge, name: str, plane: Plane = Plane.XY):
+    def full_joint_face(cls, e1: Edge, e2: Edge, name: str="Face", plane: Plane = Plane.XY):
 
         p1 = EdgePathBuilder(e1)
         p2 = EdgePathBuilder(e2).add_transfrom_mat(mat_shift(dx=e1.length), mat_rot_90)
