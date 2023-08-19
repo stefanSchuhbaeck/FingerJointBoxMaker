@@ -4,3 +4,10 @@ from box.geometry import Line, Path, Orientation, Plane
 from box.joint import SimpleBox
 
 foo="BAZZZZ"
+
+print_msg_f = None
+
+def print_msg(msg: str):
+    if print_msg_f is not None:
+        print_msg_f(msg)
+    print(msg)

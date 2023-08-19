@@ -1,15 +1,28 @@
+from functools import partial
+from typing import List
 import unittest
+
 
 import sys
 import os
+
 
 sys.path.insert(0,os.path.join(os.path.dirname(__file__),"../.."))
 import numpy as np
 
 from box.joint import SimpleBox
-from box.geometry import Edge, EdgeTyp, Path
+from box.geometry import Path, Line
 from box.dimension import Dim
-from box.transform import reflect_on_x_axis
+import box.transform as t
+from box.edge import Edge, EdgeTyp
+from box.face import Face
+
+def line_list_to_points(lines: List[Line]):
+    points = lines[0].line
+    for line in lines[1:]:
+        assert(all(points[-1] == line.start))
+        points = np.append(points, [line.end], axis=0)
+    return points
 
 
 class TestFinger(unittest.TestCase):
@@ -18,7 +31,7 @@ class TestFinger(unittest.TestCase):
             finger=Dim(4),
             finger_count=Dim(10),
             notch=Dim(3),
-            notch_count=Dim(5))
+            notch_count=Dim(9))
     
     def neg(self):
         return ( Dim(10), Dim(5), Dim(10), Dim(6))
@@ -27,7 +40,7 @@ class TestFinger(unittest.TestCase):
         return ( Dim(10), Dim(6), Dim(10), Dim(5))
 
     def test_length(self):
-        self.assertEqual(self.e.length, 4*10 + 3*5)
+        self.assertEqual(self.e.length, 4*10 + 3*9)
     
     def test_edge_type_default(self):
         self.assertEqual(self.e.edge_type, None)
@@ -236,6 +249,94 @@ class TestDimensions(unittest.TestCase):
             self.assertTrue("/" in e.args[0])
             self.assertTrue("mm != m" in e.args[0])
 
+class TestEdge(unittest.TestCase):
+
+    def test_edge_shift_rot(self):
+        e: Edge = Edge.as_length(Dim(10, "finger"), Dim(2, "finger_c"), Dim(5, "notch"), Dim(1, "notch_c"))
+        self.assertTrue(e.is_positive_edge())
+        path1 = e.make_path(Dim(3, "thickness"))
+        points1 = np.array([0, 0, 10, 0, 10, 3, 15, 3, 15, 0, 25, 0], dtype=float)
+        self.assertTrue(all(path1.points.reshape(-1) == points1))
+
+        t_rot90 = t.create_transform(t.mat_rot_90)
+        path2 = path1.transform(t_rot90)
+        points2 = np.array([0, 0, 0, 10, -3, 10, -3, 15, 0, 15, 0, 25])
+        self.assertTrue(all(path2.points.flatten() == points2))
+
+        t_rot90_shift = t.create_transform(t.mat_shift(dx=e.length), t.mat_rot_90)
+        path3 = path1.transform(t_rot90_shift)
+        points3 = np.array([25, 0, 25, 10, 22, 10, 22, 15, 25, 15, 25, 25])
+        self.assertTrue(all(path3.points.flatten() == points3))
+
+    def test_path_concat_1(self):
+        p1 = Path.zero()
+        p2 = Path().add_point(1, 1)
+        try:
+            p1.concat(p2)
+            self.fail("should not work")
+        except ValueError as e:
+            pass
+
+    def test_remove_last(self):
+        p1 = Path.zero()
+        p1.line_to(2,2)
+        p1.line_to(0, 2)
+        self.assertTrue(all(np.array([0, 0, 2, 2, 0, 2]) == p1.points.flatten()), p1.points.flatten())
+        p1.remove_last_line()
+        self.assertTrue(all(np.array([0, 0, 2, 2]) == p1.points.flatten()), p1.points.flatten())
+
+    def test_revese(self):
+        p1 = Path.zero()
+        p1.line_to(1,2)
+        p1.line_to(3, 4)
+        self.assertTrue(all(np.array([0., 0., 1., 2., 3., 4.]) == p1.points.flatten()), p1.points.flatten())
+        p2 = p1.reverse()
+        self.assertTrue(all(np.array([3., 4., 1., 2., 0., 0.]) == p2.points.flatten()), p2.points.flatten())
+        self.assertTrue(all(np.array([3., 4., 1., 2., 0., 0.]) == line_list_to_points(p2.lines).flatten()), line_list_to_points(p2.lines).flatten())
+
+        p1.reverse(copy=False)
+        self.assertTrue(all(np.array([3., 4., 1., 2., 0., 0.]) == p1.points.flatten()), p1.points.flatten())
+        self.assertTrue(all(np.array([3., 4., 1., 2., 0., 0.]) == line_list_to_points(p1.lines).flatten()), line_list_to_points(p1.lines).flatten())
+
+
+    def test_closed(self):
+        p1 = Path.zero()
+        p1.line_to(2,2)
+        p1.line_to(0, 2)
+        self.assertFalse(p1.is_closed())
+        p1.line_to(0, 0)
+        self.assertTrue(p1.is_closed())
+    
+    def test_close(self):
+        p1 = Path.zero().line_to(5,5).line_to(5, 0).close_path()
+        self.assertTrue(p1.is_closed())
+
+        p2 = Path().add_point(1,1).line_to(5,5).line_to(5, 0).close_path()
+        self.assertTrue(p2.is_closed())
+
+    def test_concat(self):
+        p1 = Path.zero().line_to(5, 5).h_dim(Dim(5, "d1"))
+        p2 = Path().add_point(10, 5).v_dim(Dim(-5, "d2")).line_to(12, -2)
+        p3 = p1.concat(p2)
+        self.assertTrue(all(np.array([0, 0, 5, 5, 10, 5, 10, 0, 12, -2]) == p3.points.flatten()), p3.points.flatten())
+        line_points = line_list_to_points(p3.lines)
+        self.assertTrue(all(np.array([0, 0, 5, 5, 10, 5, 10, 0, 12, -2]) == line_points.flatten()), line_points.flatten())
+
+        self.assertEqual(p3.lines[1].dim, Dim(5, "d1"))
+        self.assertEqual(p3.lines[2].dim, Dim(-5, "d2"))
+
+
+    def test_path_concat(self):
+        e1: Edge = Edge.as_length(Dim(10, "finger1"), Dim(2, "finger1_c"), Dim(5, "notch1"), Dim(1, "notch1_c"))
+        e2: Edge = Edge.as_width(Dim(5, "finger2"), Dim(3, "finger2_c"), Dim(5, "notch"), Dim(2, "notch_c"))
+
+        face =  Face(e1, e2, Dim(3, "thickness"), None)
+        p = face.build_path()
+        # todo test 
+        print("hi")
+
+
+
 
 
 def test_path_building():
@@ -246,14 +347,18 @@ def test_path_building():
         finger_dim=10.0,
         thickness=Dim(3.0, name="thickness", unit="mm")
     )
-    p = b.build_face(b.faces[1])
-    return p
-    print(p)
+
+
+    # p1 = b.faces[0].build_path2()
+    # p2 = b.faces[1].build_path2()
+    p3 = b.faces[2].build_path()
+    # return p
+    # print(p1)
 
 if __name__ == "__main__":
     # unittest.main()
     p = test_path_building()
-    p2 = p.transform(reflect_on_x_axis)
-    # todo test transformation for lines and consstrains!
+    # p2 = p.transform(reflect_on_x_axis)
+    # # todo test transformation for lines and consstrains!
 
     print("hi")

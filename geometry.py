@@ -1,7 +1,7 @@
 from __future__ import annotations
 import enum
 from typing import Any, List, Tuple, Callable, Protocol
-
+import copy
 
 import numpy as np
 
@@ -30,7 +30,7 @@ class Line:
     def __init__(self, p1, p2, move_to: bool = False) -> None:
         self.line = np.array([p1, p2])
         if self.line.shape != (2,2):
-            raise ValueError("expecetd (2,2) shape")
+            raise ValueError(f"expecetd (2,2) shape got {self.line.shape}")
         if (p1 == p2).all():
             raise ValueError("line with length 0 not allowed.")
 
@@ -47,6 +47,16 @@ class Line:
             self.orientation = Orientation.Other
             self.level = np.nan
     
+    def reverse(self, copy = True) -> Line:
+        if copy:
+            l = Line(self.end, self.start)
+            l.dim = self.dim
+            l.move_to = self.move_to
+            return l
+        else:
+            self.line = self.line[::-1]
+            return self
+
     def transform(self, transform: Transform) -> Line:
         line = transform(points=self.line)
         new_line = Line(line[0], line[1], self.move_to)
@@ -54,10 +64,11 @@ class Line:
         return new_line        
 
     def __str__(self) -> str:
+        _dim = " " if self.dim is None else "*"
         if self.is_construction:
-            return f"<Line: [{self.start}, {self.end}]* {self.orientation} dim: {self.length()}>"
+            return f"<Line: [{self.start}, {self.end}]* {self.orientation} dim[{_dim}]: {self.length()}>"
         else:
-            return f"<Line: [{self.start}, {self.end}]  {self.orientation} dim: {self.length()}>"
+            return f"<Line: [{self.start}, {self.end}]  {self.orientation} dim[{_dim}]: {self.length()}>"
 
 
     def __repr__(self) -> str:
@@ -85,7 +96,7 @@ class Line:
         return  self.end[0] == self.start[0]
 
     def length(self) -> float:
-        return np.linalg.norm(self.line)
+        return np.linalg.norm(self.end - self.start)
 
     def hash_key(self) -> tuple:
         return tuple(self.line.reshape(-1))
@@ -99,111 +110,20 @@ class Line:
         return self.line[1]
 
 
-class EdgeTyp(enum.Enum):
-    LENGTH_POSTIVE = 1
-    LENGTH_NEGATIVE = -1
-    WIDTH_POSTIVE = 2
-    WIDTH_NEGATIVE = -2
-    HEIGHT_POSITIVE = 3
-    HEIGHT_NEGATIVE = -3
-
-    def is_positive(self):
-        return self.value > 0
-
-
-class Edge():
-
-    def __init__(self, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim) -> None:
-        super().__init__()
-        if finger_count.int_value == notch_count.int_value:
-            raise ValueError(f"Invalid edge. finger and notch count cannot be the equal. got {finger_count} and {notch_count}")
-        self.edge_type: EdgeTyp = None
-        self.finger: Dim = finger
-        self.finger_count: int = finger_count
-        self.notch: Dim = notch
-        self.notch_count: Dim = notch_count
-
-    @classmethod
-    def as_length(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim) -> None:
-        ret = cls(finger, finger_count, notch, notch_count)
-        if ret.is_positive_edge():
-            ret.edge_type = EdgeTyp.LENGTH_POSTIVE
-        else:
-            ret.edge_type = EdgeTyp.LENGTH_NEGATIVE
-        return ret
-
-    @classmethod
-    def as_width(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim) -> None:
-        ret = cls(finger, finger_count, notch, notch_count)
-        if ret.is_positive_edge():
-            ret.edge_type = EdgeTyp.WIDTH_POSTIVE
-        else:
-            ret.edge_type = EdgeTyp.WIDTH_NEGATIVE
-        return ret
-
-    @classmethod
-    def as_height(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim) -> None:
-        ret = cls(finger, finger_count, notch, notch_count)
-        if ret.is_positive_edge():
-            ret.edge_type = EdgeTyp.HEIGHT_POSITIVE
-        else:
-            ret.edge_type = EdgeTyp.HEIGHT_NEGATIVE
-        return ret
-
-    def is_positive_edge(self):
-        """An edge is postive if the number of fingers is greater than the number notches."""
-        return self.finger_count > self.notch_count
-
-    def as_positive(self) -> Edge:
-        if self.is_positive_edge():
-            return self
-        else:
-            return self.switch_type()
-
-    def as_negative(self) -> Edge:
-        if self.is_positive_edge():
-            return self.switch_type()
-        else:
-            return self
-
-
-    def switch_type(self) -> Edge:
-        e =  Edge(
-            finger=self.notch,
-            finger_count=self.notch_count,
-            notch=self.finger,
-            notch_count=self.finger_count
-            )
-        e.edge_type = EdgeTyp(-1*(self.edge_type.value))
-        return e
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, Edge):
-            return self.edge_type == other.edge_type and \
-                self.finger == other.finger and \
-                self.finger_count == other.finger_count and \
-                self.notch == other.notch and \
-                self.notch_count == other.notch_count
-        return False
-
-    @property
-    def length(self) -> float:
-        """Outside measurement of edge."""
-        return self.finger.value * self.finger_count.int_value + self.notch.value * self.notch_count.int_value
-
-
-class FaceType(enum.Enum):
-    BOTTOM_TOP = 1
-    FRONT_BACK = 2
-    SIDE_LEFT_RIGHT = 3
-
-
 class Path:
 
     def __init__(self) -> None:
-        self.points: List[np.array] = []
+        self.points: np.array = np.array([[]])
         self.lines: List[Line] = []
         self.constraints: List[Constraint] = []
+    
+    @classmethod
+    def zero(cls):
+        p = cls().add_point(0., 0.)
+        return p
+
+    def copy(self) -> Path:
+        return copy.deepcopy(self)
 
     def __len__(self) -> int:
         return len(self.points)
@@ -220,11 +140,14 @@ class Path:
         new_path.constraints = constraints
         return  new_path
 
+    def homogenous_poins(self) -> np.array:
+        return np.append(self.points.T, np.ones(self.points.T)).reshape((3, -1))
+
 
     def get_loction(self) -> np.array():
         return  self.points[-1]
     
-    def appen_constraint(self, *args):
+    def append_constraint(self, *args):
         for c in args:
             self.constraints.append(c)
 
@@ -257,6 +180,11 @@ class Path:
     def is_closed(self) -> bool:
         return len(self) > 1 and all(self.points[0] == self.points[-1])
 
+    def close_path(self) -> Path:
+        if not self.is_closed():
+            self.line_to(self.points[0])
+        return self
+
     def clear(self):
         self.points.clear()
 
@@ -271,10 +199,14 @@ class Path:
     def add_to_last(self, p: np.array):
         if len(self.points) == 0:
             raise ValueError("Path has no initial point")
-        self.points.append(self.points[-1] + p)
+        self.points = np.append(self.points, [self.points[-1] + p], axis=0)
+        # self.points.append(self.points[-1] + p)
 
     def add_point(self, x, y):
-        self.points.append(np.array([x, y]))
+        if self.points.shape == (1, 0):
+            self.points = np.array([[x, y]])
+        else:
+            self.points = np.append(self.points, [[x, y]], axis=0)
         return self
 
     def _get_vec_dim(self, x, y) -> Tuple[np.array, Dim|None]:
@@ -299,6 +231,18 @@ class Path:
     
 
         return np.array([_x, _y]), _dim
+
+    def line_to(self, *args):
+        if len(args) == 2:
+            p, _ = self._get_vec_dim(args[0], args[1])
+        elif len(args) == 1 and isinstance(args[0], np.ndarray):
+            p = args[0]
+        else:
+            ValueError()
+
+        self.add_point(p[0], p[1])
+        self._make_line()
+        return self
 
     def h(self, v: float|Dim):
         """horizontal line from last point with length equal to the absolute value of `v` 
@@ -367,24 +311,52 @@ class Path:
             self.constraints.append(constraint_f(out))
         return out
     
+    
+    def remove_last_line(self) -> Path:
+        l = self.lines[-1]
+        del self.lines[-1]
+        self.points = np.delete(self.points, -1, axis=0)
+        return self
+
+    def reverse(self, copy: bool = True) -> Path:
+        if copy:
+            points = self.points[::-1]
+            lines = [l.reverse() for l in self.lines[::-1]]
+            constrains = self.constraints[::-1]
+            p = Path()
+            p.points = points
+            p.lines = lines
+            p.constraints = constrains
+            return p 
+        else:
+            self.points = self.points[::-1]
+            self.lines = [l.reverse(copy=False) for l in self.lines[::-1]]
+            self.constraints = self.constraints[::-1]
+            return self
+    
+    def concat(self, path: Path, create_connecting_line: bool = False) -> Path:
+        if self.is_closed() or path.is_closed():
+            raise ValueError("Closed path canot be conncatenated.")
+
+        start_end_equal = all(self.points[-1] == path.points[0])
+
+        if not create_connecting_line and not start_end_equal:
+            raise ValueError("Paths do not have matching end-start points and create_connecting_linei is false")
+
+        p1: Path = self.copy()
+        p2: Path = path.copy()
+        if not start_end_equal:
+            p1.line_to(p2.points[0])
+
+        # path p1 and p2 have now an equal start/end  (reuse copy p1)
+        p1.points = np.append(p1.points, p2.points[1:], axis=0)
+        p1.lines  = [*p1.lines, *p2.lines]
+        p1.constrains = [*p1.constraints, *p2.constraints]
+        return p1 
 
 
 
-class Face:
 
-    def __init__(self, edge_1: Edge, edge_2: Edge, thickness:float, _path_func, name="Face", plane: Plane = Plane.XY) -> None:
-        self.edge_1: Edge = edge_1
-        self.edge_2: Edge = edge_2
-        self.thickness: float = thickness
-        self._path_func  = _path_func
-        self.name = name
-        self.plane: Plane = plane
 
-    def build_path(self) -> Path:
-        return self._path_func(
-            self.edge_1,
-            self.edge_2,
-            self.thickness,
-        )
 
 

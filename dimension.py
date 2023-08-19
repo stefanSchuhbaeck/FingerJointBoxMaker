@@ -2,6 +2,26 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from numpy import abs
 
+class AbsDimHashKey:
+
+    def __init__(self, dim: Dim) -> None:
+        self.dim = dim
+
+    def __hash__(self) -> int:
+        return hash((self.dim.abs_value, self.dim.name, self.dim.unit))
+
+    def __eq__(self, __value: object) -> bool:
+        if isinstance(__value, AbsDimHashKey):
+            return self.dim.abs_equal(__value.dim)
+        return False
+    
+    def __str__(self) -> str:
+        return f"AbsDimHashKey({self.dim})"
+    
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
 @dataclass
 class Dim:
     value: float
@@ -13,8 +33,7 @@ class Dim:
         """A named dimension is a paramter that will be added to user defined paramters.
             Only dimentions with a name can be used in a `DistanceDimentsion` constraint.
         """
-        return " " in self.name
-          
+        return " " in self.name        
 
     @property
     def int_value(self):
@@ -23,6 +42,10 @@ class Dim:
     @property
     def abs_value(self):
         return abs(self.value)
+    
+    @property
+    def abs_hash(self) -> AbsDimHashKey:
+        return AbsDimHashKey(self)
     
     def same_unit(self, other:Dim):
         return self.unit == other.unit
@@ -164,4 +187,6 @@ class Dim:
         else:
             raise TypeError (f"'<' not supported between instances of '{type(self)}' and '{type(other)}'")
 
-
+    def as_abs_tuple(self) -> tuple:
+        return (self.abs_value, self.name, self.unit)
+    
