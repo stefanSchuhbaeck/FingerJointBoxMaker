@@ -7,10 +7,10 @@ import numpy as np
 from dataclasses import dataclass, field
 
 from box.dimension import Dim, AbsDimHashKey
-from box.geometry import Orientation, Path, Plane, Line
+from box.geometry import Orientation, Path, Plane, Line, PathConsumerByTransfrom
 from box.transform import reflect_on_x_axis
 import box.transform as t
-from box.edge import Edge
+from box.edge import FingerJointEdge
 from box.face import Face
 from box.constraints_impl import EqualConstraint, DimenssionConstraint, OriginLockConstraint, VerticalConstrain, HorizontalConstrain, PerpendicularConstraint
 
@@ -26,7 +26,7 @@ def add_perpendicular_constraints(path: Path, face: Face) -> Path:
 def replace_dimensions_with_equal_constrains(path: Path, face: Face) -> Path:
     dim_dict: Dict[AbsDimHashKey, List[Line]] = {}
     for l in path.lines:
-        if l.is_construction:
+        if l.is_construction or l.dim is None:
             continue
         if l.dim.abs_hash not in dim_dict:
             dim_dict.setdefault(l.dim.abs_hash,  [l])
@@ -80,9 +80,9 @@ def add_dims(path: Path, face: Face) -> Path:
 @dataclass
 class SimpleBox: 
     
-    length: Edge
-    width: Edge 
-    height: Edge 
+    length: FingerJointEdge
+    width: FingerJointEdge 
+    height: FingerJointEdge 
     bottom_top: Face
     front_back: Face
     left_right: Face
@@ -110,21 +110,21 @@ class SimpleBox:
         height_f_dim: Dim = Dim(value=finger_dim, name="h_finger", unit="mm")
         height_n_dim: Dim = Dim(value=finger_dim, name="h_notch", unit="mm")
 
-        length = Edge.as_length(
+        length = FingerJointEdge.as_length(
             finger=length_f_dim, 
             finger_count=length_finger_count,
             notch=length_n_dim,
             notch_count=length_finger_count.new_relative(-1, "length_finger_count - 1"),
             thickness=thickness)
         
-        width = Edge.as_width(
+        width = FingerJointEdge.as_width(
             finger=width_f_dim, 
             finger_count=width_finger_count,
             notch=width_n_dim,
             notch_count=width_finger_count.new_relative(-1, "width_finger_count - 1"),
             thickness=thickness)
         
-        height = Edge.as_height(
+        height = FingerJointEdge.as_height(
             finger=height_f_dim, 
             finger_count=height_finger_count,
             notch=height_n_dim,
@@ -134,14 +134,14 @@ class SimpleBox:
         return cls.from_edges(length, width, height, thickness)               
 
     @classmethod
-    def from_edges(cls, length: Edge, width: Edge, height: Edge, thickness: Dim):
+    def from_edges(cls, length: FingerJointEdge, width: FingerJointEdge, height: FingerJointEdge, thickness: Dim):
         box =  cls(
             length=length,
             width=width,
             height=height,
             bottom_top=Face.full_joint_face(length.as_positive(), width.as_positive(), name="bottom_top", plane=Plane.XY),
-            front_back=Face.full_joint_face(length.as_negative(), height.as_negative(), name="front_back", plane=Plane.XZ),
-            left_right= Face.full_joint_face(height.as_positive(), width.as_negative(), name="sides_left_right", plane=Plane.YZ),
+            front_back=Face.straigth_top_face(length.as_negative(), height.as_negative(), name="front_back", plane=Plane.XZ),
+            left_right= Face.straigth_top_face(width.as_negative(), height.as_positive(), name="sides_left_right", plane=Plane.YZ),
             thickness=thickness,
         )
         # set constraint order
@@ -160,9 +160,11 @@ class SimpleBox:
 
         
         # refelct transformation for fusion360 cooridnate system fix 
-        box.left_right.post_path_transforms.append(t.create_transform(t.mat_reflect_y))
+        # box.left_right.post_path_transforms.append(t.create_transform(t.mat_reflect_y))
+        box.left_right.post_path_consumer.append(PathConsumerByTransfrom.from_mat(t.mat_rot_90))
+        box.left_right.post_path_consumer.append(lambda x: x.reverse()) # reverse path 
         # refelct transformation for fusion360 cooridnate system fix (offset to alline joints)
-        box.front_back.post_path_transforms.append(t.create_transform(t.mat_shift(dx=thickness.value), t.mat_reflect_x)) # fusion360 fix
+        box.front_back.post_path_consumer.append(PathConsumerByTransfrom.from_mat(t.mat_shift(dx=thickness.value), t.mat_reflect_x)) # fusion360 fix
         
         return box
 

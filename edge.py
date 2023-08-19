@@ -1,6 +1,7 @@
 from __future__ import annotations
 import enum
 from typing import Any, Protocol, List, Tuple
+from abc import ABC
 
 from box.dimension import Dim
 from box.geometry import Path, PathConsumer, PathBuilder, PathConsumerByTransfrom
@@ -9,7 +10,7 @@ from box.transform import Transform, create_transform
 class EdgePathBuilder:
 
     def __init__(self, edge: Edge) -> None:
-        self.edge = edge
+        self.edge: Edge = edge
         self.path_consumer: List[PathConsumer] = []
         self.path_transforms: List[PathConsumerByTransfrom] = []
         self.callback_order: List[Tuple] = []
@@ -51,14 +52,43 @@ class EdgeTyp(enum.Enum):
     def full_length(self):
         return self.value in [1, 2, -2]
 
-class EdgeFoo(Protocol):
-     def make_path(self) -> Path:
+class Edge(ABC):
+
+    def __init__(self) -> None:
+        super().__init__()
+     
+    def make_path(self) -> Path:
         ...
+    
+    def length(self) -> float:
+        """Length of edge"""
+        ...
+    
 
 # todo: simple edge that only contains staight lines?
 
+class StraigtLineEdge(Edge):
+
+    def __init__(self, length: Dim|float) -> None:
+        super().__init__()
+        self._length: Dim|float = length
+    
+    def length(self) -> float:
+        if isinstance(self._length, Dim):
+            return self._length.value
+        else:
+            return self._length
+
+    def make_path(self) -> Path:
+        if isinstance(self._length, Dim):
+            return Path.zero().h_dim(self._length)
+        else:
+            return Path.zero().h(self._length)
+
+        
+
 # todo: one kind of edge that build finger joints. 
-class Edge(): 
+class FingerJointEdge(Edge): 
 
     def __init__(self, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim) -> None:
         super().__init__()
@@ -106,21 +136,21 @@ class Edge():
         """An edge is postive if the number of fingers is greater than the number notches."""
         return self.finger_count > self.notch_count
 
-    def as_positive(self) -> Edge:
+    def as_positive(self) -> FingerJointEdge:
         if self.is_positive_edge():
             return self
         else:
             return self.switch_type()
 
-    def as_negative(self) -> Edge:
+    def as_negative(self) -> FingerJointEdge:
         if self.is_positive_edge():
             return self.switch_type()
         else:
             return self
 
 
-    def switch_type(self) -> Edge:
-        e =  Edge(
+    def switch_type(self) -> FingerJointEdge:
+        e =  FingerJointEdge(
             finger=self.notch,
             finger_count=self.notch_count,
             notch=self.finger,
@@ -131,7 +161,7 @@ class Edge():
         return e
 
     def __eq__(self, other: object) -> bool:
-        if isinstance(other, Edge):
+        if isinstance(other, FingerJointEdge):
             return self.edge_type == other.edge_type and \
                 self.finger == other.finger and \
                 self.finger_count == other.finger_count and \

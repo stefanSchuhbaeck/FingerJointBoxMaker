@@ -8,6 +8,7 @@ import numpy as np
 
 from box.dimension import Dim
 from box.constrains import Constraint, Transform
+from box.transform import create_transform, mat_rot_90
 
 class Plane(enum.Enum):
     XY = 1
@@ -123,6 +124,11 @@ class PathBuilder(Protocol):
         ...
 
 class PathConsumerByTransfrom():
+
+    @classmethod
+    def from_mat(cls, *mat: NDArray):
+        t  = create_transform(*mat)
+        return cls(t)
 
     def __init__(self, transfrom: Transform) -> None:
         self.transfrom = transfrom

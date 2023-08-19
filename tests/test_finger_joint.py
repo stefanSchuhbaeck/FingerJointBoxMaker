@@ -14,7 +14,7 @@ from box.joint import SimpleBox
 from box.geometry import Path, Line
 from box.dimension import Dim
 import box.transform as t
-from box.edge import Edge, EdgeTyp
+from box.edge import FingerJointEdge, EdgeTyp
 from box.face import Face
 
 def line_list_to_points(lines: List[Line]):
@@ -27,7 +27,7 @@ def line_list_to_points(lines: List[Line]):
 
 class TestFinger(unittest.TestCase):
     def setUp(self) -> None:
-        self.e = Edge(
+        self.e = FingerJointEdge(
             finger=Dim(4),
             finger_count=Dim(10),
             notch=Dim(3),
@@ -54,17 +54,17 @@ class TestFinger(unittest.TestCase):
 
     def test_invalid_edeg(self):
         try:
-            e = Edge(Dim(10), Dim(10), Dim(10), Dim(10), Dim(3))
+            e = FingerJointEdge(Dim(10), Dim(10), Dim(10), Dim(10), Dim(3))
             self.fail("Edge invalid.")
         except ValueError as _:
             pass
     
     def test_length(self):
-        length_p: Edge = Edge.as_length(*self.pos())
+        length_p: FingerJointEdge = FingerJointEdge.as_length(*self.pos())
         self.assertEqual(length_p.edge_type, EdgeTyp.LENGTH_POSTIVE)
         self.assertTrue(length_p.is_positive_edge())
 
-        length_n: Edge = Edge.as_length(*self.neg())
+        length_n: FingerJointEdge = FingerJointEdge.as_length(*self.neg())
         self.assertEqual(length_n.edge_type,  EdgeTyp.LENGTH_NEGATIVE)
         self.assertFalse(length_n.is_positive_edge())
 
@@ -72,11 +72,11 @@ class TestFinger(unittest.TestCase):
         self.assertEqual(length_n, length_p.as_negative())
 
     def test_width(self):
-            width_p: Edge = Edge.as_width(*self.pos())
+            width_p: FingerJointEdge = FingerJointEdge.as_width(*self.pos())
             self.assertEqual(width_p.edge_type, EdgeTyp.WIDTH_POSTIVE)
             self.assertTrue(width_p.is_positive_edge())
 
-            width_n: Edge = Edge.as_width(*self.neg())
+            width_n: FingerJointEdge = FingerJointEdge.as_width(*self.neg())
             self.assertEqual(width_n.edge_type,  EdgeTyp.WIDTH_NEGATIVE)
             self.assertFalse(width_n.is_positive_edge())
 
@@ -84,11 +84,11 @@ class TestFinger(unittest.TestCase):
             self.assertEqual(width_n, width_p.as_negative())
 
     def test_height(self):
-            height_p: Edge = Edge.as_height(*self.pos())
+            height_p: FingerJointEdge = FingerJointEdge.as_height(*self.pos())
             self.assertEqual(height_p.edge_type, EdgeTyp.HEIGHT_POSITIVE)
             self.assertTrue(height_p.is_positive_edge())
 
-            height_n: Edge = Edge.as_height(*self.neg())
+            height_n: FingerJointEdge = FingerJointEdge.as_height(*self.neg())
             self.assertEqual(height_n.edge_type,  EdgeTyp.HEIGHT_NEGATIVE)
             self.assertFalse(height_n.is_positive_edge())
 
@@ -255,7 +255,7 @@ class TestDimensions(unittest.TestCase):
 class TestEdge(unittest.TestCase):
 
     def test_edge_shift_rot(self):
-        e: Edge = Edge.as_length(Dim(10, "finger"), Dim(2, "finger_c"), Dim(5, "notch"), Dim(1, "notch_c"), Dim(3, "thickness"))
+        e: FingerJointEdge = FingerJointEdge.as_length(Dim(10, "finger"), Dim(2, "finger_c"), Dim(5, "notch"), Dim(1, "notch_c"), Dim(3, "thickness"))
         self.assertTrue(e.is_positive_edge())
         path1 = e.make_path()
         points1 = np.array([0, 0, 10, 0, 10, 3, 15, 3, 15, 0, 25, 0], dtype=float)
@@ -330,8 +330,8 @@ class TestEdge(unittest.TestCase):
 
 
     def test_path_concat(self):
-        e1: Edge = Edge.as_length(Dim(10, "finger1"), Dim(2, "finger1_c"), Dim(5, "notch1"), Dim(1, "notch1_c"), Dim(3, "thickness"))
-        e2: Edge = Edge.as_width(Dim(5, "finger2"), Dim(3, "finger2_c"), Dim(5, "notch"), Dim(2, "notch_c"), Dim(3, "thickness"))
+        e1: FingerJointEdge = FingerJointEdge.as_length(Dim(10, "finger1"), Dim(2, "finger1_c"), Dim(5, "notch1"), Dim(1, "notch1_c"), Dim(3, "thickness"))
+        e2: FingerJointEdge = FingerJointEdge.as_width(Dim(5, "finger2"), Dim(3, "finger2_c"), Dim(5, "notch"), Dim(2, "notch_c"), Dim(3, "thickness"))
 
         face =  Face.full_joint_face(e1, e2)
         p = face.build_path()
@@ -351,17 +351,17 @@ def test_path_building():
         thickness=Dim(3.0, name="thickness", unit="mm")
     )
 
-    for face in b.faces:
-        p = face.build_path()
-
+    # for face in b.faces:
+    #     p = face.build_path()
+    b.faces[2].build_path()
 
 
     # return p
     print("hi")
 
 if __name__ == "__main__":
-    unittest.main()
-    # p = test_path_building()
+    # unittest.main()
+    p = test_path_building()
     # p2 = p.transform(reflect_on_x_axis)
     # # todo test transformation for lines and consstrains!
 
