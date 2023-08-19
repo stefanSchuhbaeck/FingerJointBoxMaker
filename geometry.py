@@ -3,6 +3,7 @@ import enum
 from typing import Any, List, Tuple, Callable, Protocol
 import copy
 
+from numpy.typing import NDArray
 import numpy as np
 
 from box.dimension import Dim
@@ -35,7 +36,7 @@ class Line:
             raise ValueError("line with length 0 not allowed.")
 
         self.dim: Dim = None
-        self.move_to: bool = False
+        self.move_to: bool = move_to
 
         if self.is_horizontal():
             self.orientation = Orientation.Horizontal
@@ -66,7 +67,7 @@ class Line:
     def __str__(self) -> str:
         _dim = " " if self.dim is None else "*"
         if self.is_construction:
-            return f"<Line: [{self.start}, {self.end}]* {self.orientation} dim[{_dim}]: {self.length()}>"
+            return f"<Line: [{self.start}, {self.end}]c {self.orientation} dim[{_dim}]: {self.length()}>"
         else:
             return f"<Line: [{self.start}, {self.end}]  {self.orientation} dim[{_dim}]: {self.length()}>"
 
@@ -128,6 +129,9 @@ class Path:
     def __len__(self) -> int:
         return len(self.points)
     
+    def get_origin_offset(self) -> NDArray:
+        return self.points[0] - np.array([0., 0.])
+    
     def transform(self, t: Transform) -> Path:
         """Create copy of path with transform applied to `points`, `lines` and `constrains` (if the contain lines)"""
       
@@ -140,11 +144,11 @@ class Path:
         new_path.constraints = constraints
         return  new_path
 
-    def homogenous_poins(self) -> np.array:
+    def homogenous_poins(self) -> NDArray:
         return np.append(self.points.T, np.ones(self.points.T)).reshape((3, -1))
 
 
-    def get_loction(self) -> np.array():
+    def get_loction(self) -> NDArray:
         return  self.points[-1]
     
     def append_constraint(self, *args):
@@ -335,9 +339,6 @@ class Path:
             return self
     
     def concat(self, path: Path, create_connecting_line: bool = False) -> Path:
-        if self.is_closed() or path.is_closed():
-            raise ValueError("Closed path canot be conncatenated.")
-
         start_end_equal = all(self.points[-1] == path.points[0])
 
         if not create_connecting_line and not start_end_equal:
@@ -351,7 +352,7 @@ class Path:
         # path p1 and p2 have now an equal start/end  (reuse copy p1)
         p1.points = np.append(p1.points, p2.points[1:], axis=0)
         p1.lines  = [*p1.lines, *p2.lines]
-        p1.constrains = [*p1.constraints, *p2.constraints]
+        p1.constraints = [*p1.constraints, *p2.constraints]
         return p1 
 
 

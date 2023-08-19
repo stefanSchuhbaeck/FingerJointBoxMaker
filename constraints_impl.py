@@ -1,9 +1,35 @@
+from __future__ import annotations
 from box.constrains import Constraint, Transform
-from box.geometry import Line
+from box.geometry import Line, Path
+from box.dimension import Dim
 
+import numpy as np
+from numpy.typing import NDArray
 
 from typing import Any, List, Protocol
 
+
+class OriginLockConstraint:
+    def __init__(self, line:Line) -> None:
+        self.line = line
+
+    def get_name(self) -> str:
+        return Constraint.OriginLock
+
+    def process(self, transfrom_f) -> Any:
+        return transfrom_f(self.line)
+
+
+class DimenssionConstraint:
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+
+    def get_name(self) -> str:
+        return Constraint.GeoDimension
+    
+    def process(self, transfrom_F) -> Any:
+        return transfrom_F(self.path)
 
 class ColiniarConstraint:
 

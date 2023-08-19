@@ -348,12 +348,13 @@ def test_path_building():
         thickness=Dim(3.0, name="thickness", unit="mm")
     )
 
+    # for face in b.faces:
+        # p = face.build_path()
 
-    # p1 = b.faces[0].build_path2()
-    # p2 = b.faces[1].build_path2()
-    p3 = b.faces[2].build_path()
+    p = b.front_back.build_path()
+
     # return p
-    # print(p1)
+    print("hi")
 
 if __name__ == "__main__":
     # unittest.main()

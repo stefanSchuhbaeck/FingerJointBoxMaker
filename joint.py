@@ -1,4 +1,5 @@
 from __future__ import annotations
+from functools import partial
 from typing import Dict, List
 import numpy as np
 
@@ -11,7 +12,7 @@ from box.transform import reflect_on_x_axis
 import box.transform as t
 from box.edge import Edge
 from box.face import Face
-from box.constraints_impl import EqualConstraint, HorizontalConstrain, PerpendicularConstraint
+from box.constraints_impl import EqualConstraint, DimenssionConstraint, OriginLockConstraint, VerticalConstrain, HorizontalConstrain, PerpendicularConstraint
 
 
 def add_perpendicular_constraints(path: Path, face: Face) -> Path:
@@ -36,6 +37,56 @@ def replace_dimensions_with_equal_constrains(path: Path, face: Face) -> Path:
         path.append_constraint(EqualConstraint.collect(lines))
     return path
 
+def sktech_offset(path: Path, face: Face,  offset_x: Dim = None, offset_y: Dim = None) -> Path:
+    if offset_x is None and offset_y is None:
+        # if face.name == "sides_left_right":
+            # path.append_constraint(HorizontalConstrain(path.lines[0]))
+        # path.append_constraint(VerticalConstrain(path.lines[0]))
+        pass
+    
+    else:
+        offset = path.get_origin_offset()
+        if (offset_x is not None and offset[0] != offset_x) or(offset_y is not None and offset[1] != offset_y):
+            raise ValueError(f"Path offset provided does not match with path. offset_x: {offset_x} offset_x: {offset_x} path origin offset: {offset}")
+
+        new_path = Path.zero()
+        if offset_x is not None:
+            new_path.h_dim(offset_x).as_construciont_line() 
+            new_path.append_constraint(HorizontalConstrain(new_path.last_line()))
+        if offset_y is not None:
+            new_path.v_dim(offset_y).as_construciont_line()
+            new_path.append_constraint(VerticalConstrain(new_path.last_line()))
+        path = new_path.concat(path)
+
+        # # #first non construction line
+        # line = path.lines[len(new_path)]
+        # if line.is_horizontal():
+        #     path.append_constraint(HorizontalConstrain(line))
+        # else:
+        #     path.append_constraint(VerticalConstrain(line))
+        
+    return path
+
+
+def add_origin_offset(path: Path, face: Face) -> Path:
+    path.append_constraint(OriginLockConstraint(path.lines[0]))
+    return path
+
+def first_line_h_or_v(path: Path, face: Face) -> Path:
+    for line in path.lines:
+        if line.is_construction:
+            continue
+        else:
+            if line.is_horizontal:
+                path.append_constraint(HorizontalConstrain(line))
+            else:
+                path.append_constraint(VerticalConstrain(line))
+            break
+    return path
+
+def add_dims(path: Path, face: Face) -> Path:
+    path.append_constraint(DimenssionConstraint(path))
+    return path
 
 @dataclass
 class SimpleBox: 
@@ -100,10 +151,24 @@ class SimpleBox:
             left_right= Face(height.as_positive(), width.as_negative(), thickness, name="sides_left_right", plane=Plane.YZ),
             thickness=thickness,
         )
+        # set constraint order
         for f in box.faces:
             f.constraint_providers.append(add_perpendicular_constraints)
+            if f.name == box.front_back.name:
+                f.constraint_providers.append(partial(sktech_offset, offset_x=thickness))
+            else:
+                f.constraint_providers.append(sktech_offset)
+
             f.constraint_providers.append(replace_dimensions_with_equal_constrains)
-        box.left_right.post_path_transforms.append(t.create_transform(t.mat_reflect_y)) # fusion360 fix 
+            f.constraint_providers.append(add_dims)
+            f.constraint_providers.append(add_origin_offset)
+            f.constraint_providers.append(first_line_h_or_v)
+
+
+        
+        # refelct transformation for fusion360 cooridnate system fix 
+        box.left_right.post_path_transforms.append(t.create_transform(t.mat_reflect_y))
+        # refelct transformation for fusion360 cooridnate system fix (offset to alline joints)
         box.front_back.post_path_transforms.append(t.create_transform(t.mat_shift(dx=thickness.value), t.mat_reflect_x)) # fusion360 fix
         
         return box

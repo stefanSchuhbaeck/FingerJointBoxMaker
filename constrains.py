@@ -18,6 +18,8 @@ class Constraint(Protocol):
     Horizontal = "Horizontal"
     Vertical = "Vertical"
     CreatePoint = "createPoint"
+    OriginLock = "OriginLock"
+    Coincident = "Coincident"
 
     def apply_transform(self, transform: Transform) -> Constraint:
         ...
