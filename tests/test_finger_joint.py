@@ -110,7 +110,8 @@ class TestBox(unittest.TestCase):
             width_finger_count=self.width_finger_count,
             height_finger_count=self.height_finger_count,
             finger_dim=self.finger_dim,
-            thickness=self.thickness
+            thickness=self.thickness,
+            kerf=Dim(0.1, "kerf")
         )
     def test_edges(self):
         self.assertEqual(self.box.length.edge_type, EdgeTyp.LENGTH_POSTIVE)
@@ -339,6 +340,35 @@ class TestEdge(unittest.TestCase):
         print("hi")
 
 
+    def test_kerf(self):
+        e: FingerJointEdge = FingerJointEdge.as_length(
+            Dim(10, "finger"), 
+            Dim(3, "finger_c"), 
+            Dim(5, "notch"), 
+            Dim(2, "notch_c"), 
+            Dim(2, "thickness"))
+        e.kerf = Dim(0.1, "kerf")
+        self.assertTrue(e.is_positive_edge())
+        self.assertEqual(e.get_finger(first_last=True), Dim(10, "finger"))
+        self.assertEqual(e.get_finger(first_last=False), Dim(10, "finger"))
+
+        self.assertEqual(e.get_notch(first_last=True), Dim(5, "notch"))
+        self.assertEqual(e.get_notch(first_last=False), Dim(5, "notch"))
+
+
+        e2 = e.as_negative()
+        self.assertFalse(e2.is_positive_edge())
+
+        self.assertEqual(e2.get_notch(first_last=True), Dim(10-2+0.05, "(finger - thickness) + kerf/2"))
+        self.assertEqual(e2.get_notch(first_last=False), Dim(10+0.1, "finger + kerf"))
+        
+        self.assertEqual(e2.get_finger(first_last=True), Dim(5-0.1, "notch - kerf"))
+        self.assertEqual(e2.get_finger(first_last=False), Dim(5-0.1, "notch - kerf"))
+        
+
+
+        self.assertEqual(e.length, e2.length + 4) # thickness difference due to `as_length` build.
+
 
 
 
@@ -348,12 +378,13 @@ def test_path_building():
         width_finger_count=Dim(3, "width_finger_count", ""),
         height_finger_count=Dim(4, "height_finger", ""),
         finger_dim=10.0,
-        thickness=Dim(3.0, name="thickness", unit="mm")
+        thickness=Dim(3.0, name="thickness", unit="mm"),
+        kerf=Dim(0.1, "kerf", "mm")
     )
 
-    # for face in b.faces:
-    #     p = face.build_path()
-    b.faces[2].build_path()
+    for face in b.faces:
+        p = face.build_path()
+    # b.faces[2].build_path()
 
 
     # return p

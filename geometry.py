@@ -8,7 +8,7 @@ import numpy as np
 
 from box.dimension import Dim
 from box.constrains import Constraint, Transform
-from box.transform import create_transform, mat_rot_90
+from box.transform import create_transform, mat_rot_90, mat_shift
 
 class Plane(enum.Enum):
     XY = 1
@@ -366,6 +366,15 @@ class Path:
     
     def concat(self, path: Path, create_connecting_line: bool = False) -> Path:
         start_end_equal = all(self.points[-1] == path.points[0])
+
+        if not start_end_equal and np.allclose(self.points[-1], path.points[0]) and not create_connecting_line:
+            print("warning small point offset. Try to fix this by translating second path ...")
+            offset = self.points[-1] - path.points[0]
+            path = path.transform(create_transform(mat_shift(dx=offset[0], dy=offset[1])))
+            start_end_equal = all(self.points[-1] == path.points[0])
+            if not start_end_equal:
+                raise ValueError("warning: translating path to fix small offset error did not work.")
+
 
         if not create_connecting_line and not start_end_equal:
             raise ValueError("Paths do not have matching end-start points and create_connecting_line is false")

@@ -90,7 +90,14 @@ class StraigtLineEdge(Edge):
 # todo: one kind of edge that build finger joints. 
 class FingerJointEdge(Edge): 
 
-    def __init__(self, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim) -> None:
+    def __init__(
+            self, 
+            finger: Dim, 
+            finger_count: Dim, 
+            notch: Dim, 
+            notch_count: Dim, 
+            thickness: Dim,
+            kerf: Dim|None = None) -> None:
         super().__init__()
         if finger_count.int_value == notch_count.int_value:
             raise ValueError(f"Invalid edge. finger and notch count cannot be the equal. got {finger_count} and {notch_count}")
@@ -102,12 +109,13 @@ class FingerJointEdge(Edge):
         self.notch: Dim = notch
         self.notch_count: Dim = notch_count     ## todo notch count is dependent on finger count (off by one in either direction!.)
         self.thickness: Dim = thickness
+        self.kerf = kerf
 
         self.path_transforms: List[Transform]
 
     @classmethod
-    def as_length(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim) -> None:
-        ret = cls(finger, finger_count, notch, notch_count, thickness)
+    def as_length(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim, kerf: Dim=None) -> None:
+        ret = cls(finger, finger_count, notch, notch_count, thickness, kerf)
         if ret.is_positive_edge():
             ret.edge_type = EdgeTyp.LENGTH_POSTIVE
         else:
@@ -115,8 +123,8 @@ class FingerJointEdge(Edge):
         return ret
 
     @classmethod
-    def as_width(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim) -> None:
-        ret = cls(finger, finger_count, notch, notch_count, thickness)
+    def as_width(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim, kerf: Dim=None) -> None:
+        ret = cls(finger, finger_count, notch, notch_count, thickness, kerf)
         if ret.is_positive_edge():
             ret.edge_type = EdgeTyp.WIDTH_POSTIVE
         else:
@@ -124,8 +132,8 @@ class FingerJointEdge(Edge):
         return ret
 
     @classmethod
-    def as_height(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim) -> None:
-        ret = cls(finger, finger_count, notch, notch_count, thickness)
+    def as_height(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim, kerf: Dim=None) -> None:
+        ret = cls(finger, finger_count, notch, notch_count, thickness, kerf)
         if ret.is_positive_edge():
             ret.edge_type = EdgeTyp.HEIGHT_POSITIVE
         else:
@@ -155,7 +163,8 @@ class FingerJointEdge(Edge):
             finger_count=self.notch_count,
             notch=self.finger,
             notch_count=self.finger_count,
-            thickness=self.thickness
+            thickness=self.thickness,
+            kerf=self.kerf
             )
         e.edge_type = EdgeTyp(-1*(self.edge_type.value))
         return e
@@ -166,17 +175,22 @@ class FingerJointEdge(Edge):
                 self.finger == other.finger and \
                 self.finger_count == other.finger_count and \
                 self.notch == other.notch and \
-                self.notch_count == other.notch_count
+                self.notch_count == other.notch_count and \
+                self.thickness == other.thickness and \
+                self.kerf == other.kerf
         return False
 
     @property
     def length(self) -> float:
         """Outside measurement of edge."""
-        val =  self.finger.value * self.finger_count.int_value + self.notch.value * self.notch_count.int_value
-        if self.edge_type.full_length():
-            return val
+        if self.is_positive_edge():
+            #finger-notch-finger...
+            val = 2*self.get_finger(first_last=True).value + (self.finger_count.int_value -2)*self.get_finger(first_last=False).value + self.notch_count.int_value*self.get_notch(first_last=False).value
         else:
-            return val - 2*self.thickness.value
+            #notch-finger-notch...
+            val = 2*self.get_notch(first_last=True).value + (self.notch_count.int_value -2)*self.get_notch(first_last=False).value + self.finger_count.int_value*self.get_finger(first_last=False).value
+
+        return val
     
     def rep_count(self) -> int:
         """Number of path squences to draw"""
@@ -184,36 +198,71 @@ class FingerJointEdge(Edge):
             return self.finger_count.int_value -1
         else:
             return self.finger_count.int_value
+    
+    def get_finger(self, first_last:bool) -> Dim:
+        if self.is_positive_edge() or self.kerf is None: 
+            # positive edge does not apply kerf correction. If negative edge but kerf is not set apply same rules 
+            if first_last and not self.edge_type.full_length():
+                ret = self.finger - self.thickness
+            else:
+                ret = self.finger
+        else:
+            # edge is negative and kerf is set. All fingers in a negative edge are the same, thus no discrimination with first_last needed.
+            ret = self.finger - self.kerf
+
+        return ret
+
+    def get_notch(self, first_last: bool) -> Dim:
+        if self.is_positive_edge() or self.kerf is None:
+            # positive edge does not apply kerf correction. If negative edge but kerf is not set apply same rules 
+            if first_last and not self.edge_type.full_length():
+                ret = self.notch - self.thickness
+            else:
+                ret = self.notch
+        else:
+            if first_last:
+                if not self.edge_type.full_length():
+                    ret = self.notch - self.thickness + self.kerf.div_by(2)
+                else:
+                    ret = self.notch + self.kerf.div_by(2)
+            else:
+                ret = self.notch + self.kerf
+
+        return ret
 
     def make_path(self) -> Path:
         path: Path = Path.zero()
 
         for i in range(self.rep_count()):
-            if self.is_positive_edge():
-                if i == 0 and not self.edge_type.full_length():
-                    path.h_dim(self.finger - self.thickness)
-                else:
-                    path.h_dim(self.finger)
+            if self.is_positive_edge(): # postive edge: finger->notch->finger
+                # if i == 0 and not self.edge_type.full_length():
+                #     path.h_dim(self.finger - self.thickness)
+                # else:
+                #     path.h_dim(self.finger)
+                path.h_dim(self.get_finger(i==0))
                 path.v_dim(self.thickness)
-                path.h_dim(self.notch)
+                path.h_dim(self.get_notch(first_last=False)) # not the first element in path
                 path.v_dim(-self.thickness)
-            else:
-                if i == 0 and  not self.edge_type.full_length():
-                    path.h_dim(self.notch - self.thickness)
-                else:
-                    path.h_dim(self.notch)
+            else: # negative edge: finger->notch->finger
+                # if i == 0 and  not self.edge_type.full_length():
+                #     path.h_dim(self.notch - self.thickness)
+                # else:
+                #     path.h_dim(self.notch)
+                path.h_dim(self.get_notch(i==0))
                 path.v_dim(-self.thickness)
-                path.h_dim(self.finger)
+                path.h_dim(self.get_finger(first_last=False)) # not the first element in path
                 path.v_dim(self.thickness)
         if self.is_positive_edge():
-            if self.edge_type.full_length():
-                path.h_dim(self.finger)
-            else:
-                path.h_dim(self.finger - self.thickness)
+            path.h_dim(self.get_finger(first_last=True))
+            # if self.edge_type.full_length():
+            #     path.h_dim(self.finger)
+            # else:
+            #     path.h_dim(self.finger - self.thickness)
         else:
-            if self.edge_type.full_length():
-               path.h_dim(self.notch)
-            else:
-                path.h_dim(self.notch - self.thickness)
+            path.h_dim(self.get_notch(first_last=True))
+            # if self.edge_type.full_length():
+            #    path.h_dim(self.notch)
+            # else:
+            #     path.h_dim(self.notch - self.thickness)
         return path
 

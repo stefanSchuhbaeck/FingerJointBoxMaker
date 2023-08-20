@@ -9,6 +9,16 @@ from numpy.typing import NDArray
 from typing import Any, List, Protocol
 
 
+class UserParamter:
+    def __init__(self, dim:Dim) -> None:
+        self.dim = dim
+        
+    def get_name(self) -> str:
+        return Constraint.UserParameter
+
+    def process(self, transfrom_f) -> Any:
+        return transfrom_f(self.dim)
+
 class OriginLockConstraint:
     def __init__(self, line:Line) -> None:
         self.line = line

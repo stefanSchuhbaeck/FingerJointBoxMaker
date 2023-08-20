@@ -26,9 +26,11 @@ class FacePathBuilder:
         self.path_builder: List[Path] = path_builder
     
     def __call__(self) -> Path:
+        print("Build Face:")
         path: Path = self.path_builder[0]()
         if len(self.path_builder) > 1:
-            for p_builder in self.path_builder[1:]:
+            for idx, p_builder in enumerate(self.path_builder[1:]):
+                print(f"build append path {idx+1}/{len(self.path_builder)}")
                 _p: Path = p_builder()
                 path = path.concat(_p)
         return path
@@ -92,6 +94,7 @@ class Face:
         # path = base_path_e1
         # for p in paths:
         #     path = path.concat(p)
+        print(f"Build path for face '{self.name}'")
         path: Path = self.face_builder()
 
         for consumer in self.post_path_consumer:

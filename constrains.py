@@ -22,6 +22,7 @@ class Constraint(Protocol):
     CreatePoint = "createPoint"
     OriginLock = "OriginLock"
     Coincident = "Coincident"
+    UserParameter = "UserParamter"
 
     def apply_transform(self, transform: Transform) -> Constraint:
         ...

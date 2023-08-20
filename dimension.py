@@ -121,6 +121,10 @@ class Dim:
         else:
             raise TypeError(f" '/' not supported between instances of 'Dim' and '{type(other)}' ")
 
+    def div_by(self, val:int) -> Dim:
+        d: Dim = self/val
+        d.name = f"{d.name}/{val}"
+        return d
     
     def __add__(self, other) -> Dim:
         if isinstance(other, (float, int)):
