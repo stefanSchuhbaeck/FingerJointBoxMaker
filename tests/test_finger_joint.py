@@ -10,7 +10,7 @@ import os
 sys.path.insert(0,os.path.join(os.path.dirname(__file__),"../.."))
 import numpy as np
 
-from box.joint import SimpleBox
+from box.boxes.simple_box import SimpleBox, SimpleBoxStraigtTop
 from box.geometry import Path, Line
 from box.dimension import Dim
 import box.transform as t
@@ -382,17 +382,26 @@ def test_path_building():
         kerf=Dim(0.1, "kerf", "mm")
     )
 
-    for face in b.faces:
-        p = face.build_path()
-    # b.faces[2].build_path()
+    box_path1 = b.build()
+    
+    b = SimpleBoxStraigtTop.eqaul_from_finger_count(
+        length_finger_count=Dim(5, "length_finger_count", ""),
+        width_finger_count=Dim(3, "width_finger_count", ""),
+        height_finger_count=Dim(4, "height_finger", ""),
+        finger_dim=10.0,
+        thickness=Dim(3.0, name="thickness", unit="mm"),
+        kerf=Dim(0.1, "kerf", "mm")
+    )
 
+    box_path1 = b.build()
 
     # return p
     print("hi")
 
 if __name__ == "__main__":
-    # unittest.main()
     p = test_path_building()
+
+    unittest.main()
     # p2 = p.transform(reflect_on_x_axis)
     # # todo test transformation for lines and consstrains!
 
