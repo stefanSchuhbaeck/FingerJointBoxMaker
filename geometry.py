@@ -273,6 +273,18 @@ class Path:
         self.add_point(p[0], p[1])
         self._make_line()
         return self
+    
+    def line_to_rel(self, *args):
+        if len(args) == 2:
+            x = args[0].value if isinstance(args[0], Dim) else args[0]
+            y = args[1].value if isinstance(args[1], Dim) else args[1]
+            p = self.points[-1] + np.array([x, y])
+        elif len(args) == 1 and isinstance(args[0], np.ndarray):
+            p = self.points[-1] + args[0]
+        else:
+            ValueError()
+        
+        return self.line_to(p)
 
     def h(self, v: float|Dim):
         """horizontal line from last point with length equal to the absolute value of `v` 

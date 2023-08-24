@@ -14,12 +14,25 @@ class EdgePathBuilder:
         self.path_consumer: List[PathConsumer] = []
         self.path_transforms: List[PathConsumerByTransfrom] = []
         self.callback_order: List[Tuple] = []
+        self.concat_with_connecting_line: bool = False
+    
+    @property
+    def length(self) -> float:
+        return self.edge.length
     
     def add_path_consumer(self, consumer: PathConsumer) -> EdgePathBuilder:
         """append path consumer."""
         self.path_consumer.append(consumer)
         self.callback_order.append((self.path_consumer, len(self.path_consumer)-1))
         return self
+    
+    def reverse_path(self) -> EdgePathBuilder:
+        return self.add_path_consumer(lambda x: x.reverse(copy=False))
+    
+    def allow_concat(self) -> EdgePathBuilder:
+        self.concat_with_connecting_line = True 
+        return self
+        
 
     def add_transfrom_mat(self, *mat) -> EdgePathBuilder:
         return self.add_transfrom(create_transform(*mat))
@@ -46,18 +59,33 @@ class EdgeTyp(enum.Enum):
     WIDTH_NEGATIVE = -2     # Notch, full
     HEIGHT_POSITIVE = 3     # Finger, minus thickness
     HEIGHT_NEGATIVE = -3    # Notch, minus thickness
+    OTHER_POSITIVE = 4 
+    OTHER_NEGATIVE = -4
 
     def is_positive(self):
         return self.value > 0
     def full_length(self):
         return self.value in [1, 2, -2]
 
+
+
 class Edge(ABC):
 
     def __init__(self) -> None:
         super().__init__()
+        self.path_pre_processors : List[PathConsumer] = []
+        self.path_post_processors : List[PathConsumer] = []
      
     def make_path(self) -> Path:
+        p = Path.zero()
+        for processor in self.path_pre_processors:
+            p = processor(p)
+        p = self.build_path(p)
+        for processor in self.path_post_processors:
+            p = processor(p)
+        return p
+    
+    def build_path(self, path: Path) -> Path:
         ...
     
     def length(self) -> float:
@@ -79,13 +107,33 @@ class StraigtLineEdge(Edge):
         else:
             return self._length
 
-    def make_path(self) -> Path:
+    def build_path(self, path: Path) -> Path:
         if isinstance(self._length, Dim):
-            return Path.zero().h_dim(self._length)
+            return path.h_dim(self._length)
         else:
-            return Path.zero().h(self._length)
+            return path.h(self._length)
 
-        
+class StackableBottomTopEdge(Edge):
+    def __init__(self, stand_l: Dim, stand_h: Dim, stand_notch: Dim) -> None:
+        super().__init__()
+        self.stand_l: Dim = stand_l
+        self.stand_h: Dim = stand_h
+        self.stand_notch: Dim = stand_notch
+    
+    def length(self) -> float:
+        return self.stand_h.value*2 + self.stand_notch.value
+    
+    def build_path(self, path: Path) -> Path:
+        val = self.stand_h.value/3
+
+        path.h_dim(self.stand_l)
+        path.v(val)
+        path.line_to_rel(val, val)
+        path.h_dim(self.stand_notch - 4*val)
+        path.line_to_rel(val, -val)
+        path.v(-val)
+        path.h_dim(self.stand_l)
+        return path
 
 # todo: one kind of edge that build finger joints. 
 class FingerJointEdge(Edge): 
@@ -103,13 +151,16 @@ class FingerJointEdge(Edge):
             raise ValueError(f"Invalid edge. finger and notch count cannot be the equal. got {finger_count} and {notch_count}")
         if abs(finger_count.int_value - notch_count.int_value) > 1:
             raise ValueError(f"Invalid edge. Finger and notch count must be off by one in either direction.")
-        self.edge_type: EdgeTyp = None
         self.finger: Dim = finger
         self.finger_count: int = finger_count
         self.notch: Dim = notch
         self.notch_count: Dim = notch_count     ## todo notch count is dependent on finger count (off by one in either direction!.)
         self.thickness: Dim = thickness
         self.kerf = kerf
+        if self.is_positive_edge():
+            self.edge_type = EdgeTyp.OTHER_POSITIVE
+        else:
+            self.edge_type = EdgeTyp.OTHER_NEGATIVE
 
         self.path_transforms: List[Transform]
 
@@ -230,39 +281,71 @@ class FingerJointEdge(Edge):
 
         return ret
 
-    def make_path(self) -> Path:
-        path: Path = Path.zero()
-
+    def build_path(self, path: Path) -> Path:
         for i in range(self.rep_count()):
             if self.is_positive_edge(): # postive edge: finger->notch->finger
-                # if i == 0 and not self.edge_type.full_length():
-                #     path.h_dim(self.finger - self.thickness)
-                # else:
-                #     path.h_dim(self.finger)
                 path.h_dim(self.get_finger(i==0))
                 path.v_dim(self.thickness)
                 path.h_dim(self.get_notch(first_last=False)) # not the first element in path
                 path.v_dim(-self.thickness)
             else: # negative edge: finger->notch->finger
-                # if i == 0 and  not self.edge_type.full_length():
-                #     path.h_dim(self.notch - self.thickness)
-                # else:
-                #     path.h_dim(self.notch)
                 path.h_dim(self.get_notch(i==0))
                 path.v_dim(-self.thickness)
                 path.h_dim(self.get_finger(first_last=False)) # not the first element in path
                 path.v_dim(self.thickness)
         if self.is_positive_edge():
             path.h_dim(self.get_finger(first_last=True))
-            # if self.edge_type.full_length():
-            #     path.h_dim(self.finger)
-            # else:
-            #     path.h_dim(self.finger - self.thickness)
         else:
             path.h_dim(self.get_notch(first_last=True))
-            # if self.edge_type.full_length():
-            #    path.h_dim(self.notch)
-            # else:
-            #     path.h_dim(self.notch - self.thickness)
         return path
 
+
+class FingerJointHolesEdge(FingerJointEdge):
+
+    def __init__(self, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim, kerf: Dim | None = None) -> None:
+        super().__init__(finger, finger_count, notch, notch_count, thickness, kerf)
+
+    def switch_type(self) -> FingerJointHolesEdge:
+        e =  FingerJointHolesEdge(
+            finger=self.notch,
+            finger_count=self.notch_count,
+            notch=self.finger,
+            notch_count=self.finger_count,
+            thickness=self.thickness,
+            kerf=self.kerf
+            )
+        e.edge_type = EdgeTyp(-1*(self.edge_type.value))
+        return e
+    
+    def _hole(self, path: Path) -> Path:
+        """Create hole for finger at current position."""
+        path.h_dim(self.get_notch(False))
+        path.v_dim(self.thickness)
+        path.h_dim(-self.get_notch(False))
+        path.v_dim(-self.thickness)
+        path.h_dim(self.get_notch(False)).as_construciont_line()
+        return path
+    
+    def build_path(self, path: Path) -> Path:
+        path: Path = Path.zero()
+
+        for i in range(self.rep_count()):
+            if self.is_positive_edge(): # postive edge: finger->notch->finger
+                path.h_dim(self.get_finger(i==0)).as_construciont_line()
+                path = self._hole(path) # hole
+            else: # negative edge: finger->notch->finger
+                path = self._hole(path)
+                path.h_dim(self.get_finger(first_last=False)).as_construciont_line()
+        if self.is_positive_edge():
+            path.h_dim(self.get_finger(first_last=True)).as_construciont_line()
+        else:
+            path = self._hole(path)
+        return path
+
+def stackable_side_edge(edge: FingerJointEdge, stand_h: Dim) -> FingerJointEdge:
+
+    def append_start(path: Path) -> Path:
+        path.h_dim(stand_h + edge.thickness)
+        return path
+    edge.path_pre_processors.insert(0, append_start)
+    return edge

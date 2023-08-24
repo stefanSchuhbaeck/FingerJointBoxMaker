@@ -5,6 +5,8 @@ import unittest
 
 import sys
 import os
+from matplotlib import pyplot as plt
+
 
 
 sys.path.insert(0,os.path.join(os.path.dirname(__file__),"../.."))
@@ -14,8 +16,9 @@ from box.boxes.simple_box import SimpleBox, SimpleBoxStraigtTop
 from box.geometry import Path, Line
 from box.dimension import Dim
 import box.transform as t
-from box.edge import FingerJointEdge, EdgeTyp
+from box.edge import FingerJointEdge, EdgeTyp, StackableBottomTopEdge, FingerJointHolesEdge
 from box.face import Face
+from box.export.plot import plot_points, plot_path
 
 def line_list_to_points(lines: List[Line]):
     points = lines[0].line
@@ -383,7 +386,8 @@ def test_path_building():
     )
 
     box_path1 = b.build()
-    
+    f, _ = plot_path(box_path1[1])
+    f.show()
     b = SimpleBoxStraigtTop.eqaul_from_finger_count(
         length_finger_count=Dim(5, "length_finger_count", ""),
         width_finger_count=Dim(3, "width_finger_count", ""),
@@ -399,9 +403,14 @@ def test_path_building():
     print("hi")
 
 if __name__ == "__main__":
-    p = test_path_building()
+    # p = test_path_building()
 
-    unittest.main()
+    # e = StackableBottomTopEdge(Dim(15), Dim(10), Dim(100))
+    e = FingerJointHolesEdge(finger=Dim(10), finger_count=Dim(5), notch=Dim(5), notch_count=Dim(4), thickness=Dim(3), kerf=Dim(0.1))
+    path = e.as_negative().make_path()
+    f, _ = plot_path(path)
+    plt.show()
+    # unittest.main()
     # p2 = p.transform(reflect_on_x_axis)
     # # todo test transformation for lines and consstrains!
 

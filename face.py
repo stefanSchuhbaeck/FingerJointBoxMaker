@@ -22,8 +22,38 @@ class FaceType(enum.Enum):
 class FacePathBuilder:
     """Concatenate all paths genreated by the provided PathBuilders"""
 
-    def __init__(self, *path_builder: PathBuilder) -> None:
-        self.path_builder: List[Path] = path_builder
+    def __init__(self, *path_builder: EdgePathBuilder) -> None:
+        self.path_builder: List[EdgePathBuilder] = path_builder
+    
+    def add(self, edge_path_builder: EdgePathBuilder) -> FacePathBuilder:
+        self.path_builder.append(edge_path_builder)
+        return self
+    
+    @property
+    def last(self) -> EdgePathBuilder:
+        return self.path_builder[-1] 
+    
+    def left_side_transform(self) -> EdgePathBuilder:
+        """shift in x and rotate based on last added edge"""
+        prev = self.path_builder[-2]
+        curr = self.path_builder[-1]
+        curr.add_transfrom_mat(mat_shift(dx=prev.length), mat_rot_90)
+        return curr
+
+    def top_side_transfrom(self) -> EdgePathBuilder:
+        """refelct on x axis, shift in y and reverse path"""
+        prev = self.path_builder[-2]
+        curr = self.path_builder[-1]
+        curr.add_transfrom_mat(mat_shift(dy=prev.length), mat_reflect_x).reverse_path()
+        return curr
+    
+    def right_side_transfrom(self) -> EdgePathBuilder:
+        """roate 90 reflect on x and revese path"""
+        prev = self.path_builder[-2]
+        curr = self.path_builder[-1]
+        curr.add_transfrom_mat(mat_rot_90, mat_reflect_x).reverse_path()
+        return curr
+
     
     def __call__(self) -> Path:
         print("Build Face:")
@@ -43,8 +73,8 @@ class Face:
 
         p1 = EdgePathBuilder(e1)
         p2 = EdgePathBuilder(e2).add_transfrom_mat(mat_shift(dx=e1.length), mat_rot_90)
-        p3 = EdgePathBuilder(e1).add_transfrom_mat(mat_shift(dy=e2.length), mat_reflect_x).add_path_consumer(lambda x: x.reverse(copy=False))
-        p4 = EdgePathBuilder(e2).add_transfrom_mat(mat_rot_90, mat_reflect_x).add_path_consumer(lambda x: x.reverse(copy=False))
+        p3 = EdgePathBuilder(e1).add_transfrom_mat(mat_shift(dy=e2.length), mat_reflect_x).reverse_path()
+        p4 = EdgePathBuilder(e2).add_transfrom_mat(mat_rot_90, mat_reflect_x).reverse_path()
         face_builder = FacePathBuilder(p1, p2, p3, p4)
         return cls(face_builder = face_builder, name=name, plane=plane)
 
@@ -52,8 +82,8 @@ class Face:
     def straigth_top_face(cls, e1: FingerJointEdge, e2: FingerJointEdge, name: str="Face", plane: Plane = Plane.XY):
         p1 = EdgePathBuilder(e1)
         p2 = EdgePathBuilder(e2).add_transfrom_mat(mat_shift(dx=e1.length), mat_rot_90)
-        p3 = EdgePathBuilder(StraigtLineEdge(e1.length)).add_transfrom_mat(mat_shift(dy=e2.length), mat_reflect_x).add_path_consumer(lambda x: x.reverse(copy=False))
-        p4 = EdgePathBuilder(e2).add_transfrom_mat(mat_rot_90, mat_reflect_x).add_path_consumer(lambda x: x.reverse(copy=False))
+        p3 = EdgePathBuilder(StraigtLineEdge(e1.length)).add_transfrom_mat(mat_shift(dy=e2.length), mat_reflect_x).reverse_path()
+        p4 = EdgePathBuilder(e2).add_transfrom_mat(mat_rot_90, mat_reflect_x).reverse_path()
         face_builder = FacePathBuilder(p1, p2, p3, p4)
         return cls(face_builder = face_builder, name=name, plane=plane)
 
