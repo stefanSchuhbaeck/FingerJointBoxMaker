@@ -1,19 +1,19 @@
-import box.transform as t
-from box.constrains import Constraint
-from box.constraints_impl import UserParamter
-from box.dimension import Dim
-from box.edge import FingerJointEdge
-from box.face import Face
-from box.geometry import Path, PathConsumerByTransfrom, Plane
-from box.boxes.comon import add_dimension_constraint
+import fingerJointBoxMaker.transform as t
+from fingerJointBoxMaker.constrains import Constraint
+from fingerJointBoxMaker.constraints_impl import UserParamter
+from fingerJointBoxMaker.dimension import Dim
+from fingerJointBoxMaker.edge import FingerJointEdge
+from fingerJointBoxMaker.face import Face
+from fingerJointBoxMaker.geometry import Path, PathConsumerByTransfrom, Plane
+from fingerJointBoxMaker.boxes.comon import add_dimension_constraint
 
 
 from dataclasses import dataclass, field
 from functools import partial
 from typing import List
 
-from box.boxes.comon import Box
-from box.boxes.comon import add_origin_offset, add_perpendicular_constraints, add_first_line_h_or_v_constraint, add_equal_constrains_instead_of_dimensions, add_sktech_offset
+from fingerJointBoxMaker.boxes.comon import Box
+from fingerJointBoxMaker.boxes.comon import add_origin_offset, add_perpendicular_constraints, add_first_line_h_or_v_constraint, add_equal_constrains_instead_of_dimensions, add_sktech_offset
 
 
 
@@ -133,7 +133,7 @@ class SimpleBox(Box):
 
 
         # refelct transformation for fusion360 cooridnate system fix 
-        # box.left_right.post_path_transforms.append(t.create_transform(t.mat_reflect_y))
+        # fingerJointBoxMaker.left_right.post_path_transforms.append(t.create_transform(t.mat_reflect_y))
         self.left_right.post_path_consumer.append(PathConsumerByTransfrom.from_mat(t.mat_rot_90))
         self.left_right.post_path_consumer.append(lambda x: x.reverse()) # reverse path 
         # refelct transformation for fusion360 cooridnate system fix (offset to alline joints)

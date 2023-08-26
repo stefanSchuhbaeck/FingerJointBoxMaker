@@ -2,10 +2,10 @@ from __future__ import annotations
 import enum
 from typing import Any, Dict, List, Protocol
 
-from box.edge import FingerJointEdge, EdgePathBuilder, StraigtLineEdge
-from box.geometry import Path, Plane, Line, PathBuilder, PathConsumer
+from fingerJointBoxMaker.edge import FingerJointEdge, EdgePathBuilder, StraigtLineEdge
+from fingerJointBoxMaker.geometry import Path, Plane, Line, PathBuilder, PathConsumer
 
-from box.transform import Transform, create_transform, mat_reflect_x, mat_reflect_y, mat_shift, mat_rot_90
+from fingerJointBoxMaker.transform import Transform, create_transform, mat_reflect_x, mat_reflect_y, mat_shift, mat_rot_90
 
 class FaceConstraintProvider(Protocol):
 

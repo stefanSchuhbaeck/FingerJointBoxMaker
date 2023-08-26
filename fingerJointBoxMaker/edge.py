@@ -3,9 +3,9 @@ import enum
 from typing import Any, Protocol, List, Tuple
 from abc import ABC
 
-from box.dimension import Dim
-from box.geometry import Path, PathConsumer, PathBuilder, PathConsumerByTransfrom
-from box.transform import Transform, create_transform
+from fingerJointBoxMaker.dimension import Dim
+from fingerJointBoxMaker.geometry import Path, PathConsumer, PathBuilder, PathConsumerByTransfrom
+from fingerJointBoxMaker.transform import Transform, create_transform
 
 class EdgePathBuilder:
 

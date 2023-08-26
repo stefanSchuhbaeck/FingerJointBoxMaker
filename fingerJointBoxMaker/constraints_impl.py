@@ -1,7 +1,7 @@
 from __future__ import annotations
-from box.constrains import Constraint, Transform
-from box.geometry import Line, Path
-from box.dimension import Dim
+from fingerJointBoxMaker.constrains import Constraint, Transform
+from fingerJointBoxMaker.geometry import Line, Path
+from fingerJointBoxMaker.dimension import Dim
 
 import numpy as np
 from numpy.typing import NDArray

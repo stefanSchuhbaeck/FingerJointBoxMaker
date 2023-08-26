@@ -12,13 +12,13 @@ from matplotlib import pyplot as plt
 sys.path.insert(0,os.path.join(os.path.dirname(__file__),"../.."))
 import numpy as np
 
-from box.boxes.simple_box import SimpleBox, SimpleBoxStraigtTop
-from box.geometry import Path, Line
-from box.dimension import Dim
-import box.transform as t
-from box.edge import FingerJointEdge, EdgeTyp, StackableBottomTopEdge, FingerJointHolesEdge
-from box.face import Face
-from box.export.plot import plot_points, plot_path
+from fingerJointBoxMaker.boxes.simple_box import SimpleBox, SimpleBoxStraigtTop
+from fingerJointBoxMaker.geometry import Path, Line
+from fingerJointBoxMaker.dimension import Dim
+import fingerJointBoxMaker.transform as t
+from fingerJointBoxMaker.edge import FingerJointEdge, EdgeTyp, StackableBottomTopEdge, FingerJointHolesEdge
+from fingerJointBoxMaker.face import Face
+from fingerJointBoxMaker.export.plot import plot_points, plot_path
 
 def line_list_to_points(lines: List[Line]):
     points = lines[0].line
@@ -47,7 +47,8 @@ class TestFinger(unittest.TestCase):
         self.assertEqual(self.e.length, 4*10 + 3*9)
     
     def test_edge_type_default(self):
-        self.assertEqual(self.e.edge_type, None)
+        self.assertEqual(self.e.edge_type, EdgeTyp.OTHER_POSITIVE)
+        self.assertTrue(self.e.is_positive_edge())
 
     def test_sign_of_edge(self):
         self.assertTrue(self.e.is_positive_edge())
@@ -124,8 +125,8 @@ class TestBox(unittest.TestCase):
     def test_faces(self):
         # todo: update to FaceBuilder
         pass
-        # edge1: Edge = self.box.faces[0].face_builder edge_1
-        # edge2: Edge = self.box.faces[0].edge_2
+        # edge1: Edge = self.fingerJointBoxMaker.faces[0].face_builder edge_1
+        # edge2: Edge = self.fingerJointBoxMaker.faces[0].edge_2
         # self.assertEqual(edge1.finger.value , 10.0)
         # self.assertEqual(edge1.finger_count.value, 6 )
         # self.assertEqual(edge1.notch_count.value, 5 )
@@ -133,8 +134,8 @@ class TestBox(unittest.TestCase):
         # self.assertEqual(edge2.finger_count.value, 5 )
         # self.assertEqual(edge2.notch_count.value, 4 )
 
-        # edge1: Edge = self.box.faces[1].edge_1
-        # edge2: Edge = self.box.faces[1].edge_2
+        # edge1: Edge = self.fingerJointBoxMaker.faces[1].edge_1
+        # edge2: Edge = self.fingerJointBoxMaker.faces[1].edge_2
         # self.assertEqual(edge1.finger.value , 10.0)
         # self.assertEqual(edge1.finger_count.value, 5 )
         # self.assertEqual(edge1.notch_count.value, 6 )
@@ -142,8 +143,8 @@ class TestBox(unittest.TestCase):
         # self.assertEqual(edge2.finger_count.value, 3 )
         # self.assertEqual(edge2.notch_count.value, 4 )
 
-        # edge1: Edge = self.box.faces[2].edge_1
-        # edge2: Edge = self.box.faces[2].edge_2
+        # edge1: Edge = self.fingerJointBoxMaker.faces[2].edge_1
+        # edge2: Edge = self.fingerJointBoxMaker.faces[2].edge_2
         # self.assertEqual(edge1.finger.value , 10.0)
         # self.assertEqual(edge1.finger_count.value, 3 )
         # self.assertEqual(edge1.notch_count.value, 4 )
@@ -405,12 +406,12 @@ def test_path_building():
 if __name__ == "__main__":
     # p = test_path_building()
 
-    # e = StackableBottomTopEdge(Dim(15), Dim(10), Dim(100))
-    e = FingerJointHolesEdge(finger=Dim(10), finger_count=Dim(5), notch=Dim(5), notch_count=Dim(4), thickness=Dim(3), kerf=Dim(0.1))
-    path = e.as_negative().make_path()
-    f, _ = plot_path(path)
-    plt.show()
-    # unittest.main()
+    # # e = StackableBottomTopEdge(Dim(15), Dim(10), Dim(100))
+    # e = FingerJointHolesEdge(finger=Dim(10), finger_count=Dim(5), notch=Dim(5), notch_count=Dim(4), thickness=Dim(3), kerf=Dim(0.1))
+    # path = e.as_negative().make_path()
+    # f, _ = plot_path(path)
+    # plt.show()
+    unittest.main()
     # p2 = p.transform(reflect_on_x_axis)
     # # todo test transformation for lines and consstrains!
 

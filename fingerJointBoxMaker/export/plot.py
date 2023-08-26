@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from numpy.typing import NDArray
-from box.geometry import Path
+from fingerJointBoxMaker.geometry import Path
 
 
 def plot_points(path: NDArray, **plotargs):

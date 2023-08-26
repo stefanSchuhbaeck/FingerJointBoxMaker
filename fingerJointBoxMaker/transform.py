@@ -1,6 +1,6 @@
 import numpy as np
 from functools import partial, reduce
-from box.constrains import Transform
+from fingerJointBoxMaker.constrains import Transform
 
 
 def transform_points(points: np.array, mat: np.array) -> np.array:

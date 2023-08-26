@@ -6,9 +6,9 @@ import copy
 from numpy.typing import NDArray
 import numpy as np
 
-from box.dimension import Dim
-from box.constrains import Constraint, Transform
-from box.transform import create_transform, mat_rot_90, mat_shift
+from fingerJointBoxMaker.dimension import Dim
+from fingerJointBoxMaker.constrains import Constraint, Transform
+from fingerJointBoxMaker.transform import create_transform, mat_rot_90, mat_shift
 
 class Plane(enum.Enum):
     XY = 1

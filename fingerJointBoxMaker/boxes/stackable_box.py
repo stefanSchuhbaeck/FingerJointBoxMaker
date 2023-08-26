@@ -1,22 +1,22 @@
-import box.transform as t
-from box.constrains import Constraint
-from box.constraints_impl import UserParamter
-from box.dimension import Dim
-from box.edge import FingerJointEdge, StackableBottomTopEdge, FingerJointHolesEdge
-from box.face import Face
-from box.geometry import Path, PathConsumerByTransfrom, Plane
-from box.boxes.comon import add_dimension_constraint
+import fingerJointBoxMaker.transform as t
+from fingerJointBoxMaker.constrains import Constraint
+from fingerJointBoxMaker.constraints_impl import UserParamter
+from fingerJointBoxMaker.dimension import Dim
+from fingerJointBoxMaker.edge import FingerJointEdge, StackableBottomTopEdge, FingerJointHolesEdge
+from fingerJointBoxMaker.face import Face
+from fingerJointBoxMaker.geometry import Path, PathConsumerByTransfrom, Plane
+from fingerJointBoxMaker.boxes.comon import add_dimension_constraint
 
 
 from dataclasses import dataclass, field
 from functools import partial
 from typing import List
 
-from box.boxes.comon import Box
-from box.boxes.comon import add_origin_offset, add_perpendicular_constraints, add_first_line_h_or_v_constraint, add_equal_constrains_instead_of_dimensions, add_sktech_offset
-from box.edge import EdgePathBuilder, stackable_side_edge
-from box.transform import Transform, create_transform, mat_reflect_x, mat_reflect_y, mat_shift, mat_rot_90
-from box.face import FacePathBuilder
+from fingerJointBoxMaker.boxes.comon import Box
+from fingerJointBoxMaker.boxes.comon import add_origin_offset, add_perpendicular_constraints, add_first_line_h_or_v_constraint, add_equal_constrains_instead_of_dimensions, add_sktech_offset
+from fingerJointBoxMaker.edge import EdgePathBuilder, stackable_side_edge
+from fingerJointBoxMaker.transform import Transform, create_transform, mat_reflect_x, mat_reflect_y, mat_shift, mat_rot_90
+from fingerJointBoxMaker.face import FacePathBuilder
 
 
 

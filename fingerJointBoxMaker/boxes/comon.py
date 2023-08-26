@@ -2,11 +2,11 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, List
-from box.constraints_impl import DimenssionConstraint, EqualConstraint, HorizontalConstrain, OriginLockConstraint, PerpendicularConstraint, VerticalConstrain
-from box.dimension import AbsDimHashKey, Dim
+from fingerJointBoxMaker.constraints_impl import DimenssionConstraint, EqualConstraint, HorizontalConstrain, OriginLockConstraint, PerpendicularConstraint, VerticalConstrain
+from fingerJointBoxMaker.dimension import AbsDimHashKey, Dim
 
-from box.face import Face
-from box.geometry import Line, Path
+from fingerJointBoxMaker.face import Face
+from fingerJointBoxMaker.geometry import Line, Path
 
 @dataclass
 class Box(ABC):
