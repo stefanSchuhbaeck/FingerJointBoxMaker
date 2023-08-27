@@ -2,7 +2,7 @@ from __future__ import annotations
 import enum
 from typing import Any, Dict, List, Protocol
 
-from fingerJointBoxMaker.edge import FingerJointEdge, EdgePathBuilder, StraigtLineEdge
+from fingerJointBoxMaker.edge import FingerJointEdge, EdgePathBuilder, StraightLineEdge
 from fingerJointBoxMaker.geometry import Path, Plane, Line, PathBuilder, PathConsumer
 
 from fingerJointBoxMaker.transform import Transform, create_transform, mat_reflect_x, mat_reflect_y, mat_shift, mat_rot_90
@@ -82,7 +82,7 @@ class Face:
     def straigth_top_face(cls, e1: FingerJointEdge, e2: FingerJointEdge, name: str="Face", plane: Plane = Plane.XY):
         p1 = EdgePathBuilder(e1)
         p2 = EdgePathBuilder(e2).add_transfrom_mat(mat_shift(dx=e1.length), mat_rot_90)
-        p3 = EdgePathBuilder(StraigtLineEdge(e1.length)).add_transfrom_mat(mat_shift(dy=e2.length), mat_reflect_x).reverse_path()
+        p3 = EdgePathBuilder(StraightLineEdge(e1.length)).add_transfrom_mat(mat_shift(dy=e2.length), mat_reflect_x).reverse_path()
         p4 = EdgePathBuilder(e2).add_transfrom_mat(mat_rot_90, mat_reflect_x).reverse_path()
         face_builder = FacePathBuilder(p1, p2, p3, p4)
         return cls(face_builder = face_builder, name=name, plane=plane)

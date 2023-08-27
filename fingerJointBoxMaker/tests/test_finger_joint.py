@@ -65,11 +65,11 @@ class TestFinger(unittest.TestCase):
     
     def test_length(self):
         length_p: FingerJointEdge = FingerJointEdge.as_length(*self.pos())
-        self.assertEqual(length_p.edge_type, EdgeTyp.LENGTH_POSTIVE)
+        self.assertEqual(length_p.edge_type, EdgeTyp.I_POSITIVE)
         self.assertTrue(length_p.is_positive_edge())
 
         length_n: FingerJointEdge = FingerJointEdge.as_length(*self.neg())
-        self.assertEqual(length_n.edge_type,  EdgeTyp.LENGTH_NEGATIVE)
+        self.assertEqual(length_n.edge_type,  EdgeTyp.I_NEGATIVE)
         self.assertFalse(length_n.is_positive_edge())
 
         self.assertEqual(length_p, length_n.as_positive())
@@ -77,11 +77,11 @@ class TestFinger(unittest.TestCase):
 
     def test_width(self):
             width_p: FingerJointEdge = FingerJointEdge.as_width(*self.pos())
-            self.assertEqual(width_p.edge_type, EdgeTyp.WIDTH_POSTIVE)
+            self.assertEqual(width_p.edge_type, EdgeTyp.II_POSITIVE)
             self.assertTrue(width_p.is_positive_edge())
 
             width_n: FingerJointEdge = FingerJointEdge.as_width(*self.neg())
-            self.assertEqual(width_n.edge_type,  EdgeTyp.WIDTH_NEGATIVE)
+            self.assertEqual(width_n.edge_type,  EdgeTyp.II_NEGATIVE)
             self.assertFalse(width_n.is_positive_edge())
 
             self.assertEqual(width_p, width_n.as_positive())
@@ -89,11 +89,11 @@ class TestFinger(unittest.TestCase):
 
     def test_height(self):
             height_p: FingerJointEdge = FingerJointEdge.as_height(*self.pos())
-            self.assertEqual(height_p.edge_type, EdgeTyp.HEIGHT_POSITIVE)
+            self.assertEqual(height_p.edge_type, EdgeTyp.III_POSITIVE)
             self.assertTrue(height_p.is_positive_edge())
 
             height_n: FingerJointEdge = FingerJointEdge.as_height(*self.neg())
-            self.assertEqual(height_n.edge_type,  EdgeTyp.HEIGHT_NEGATIVE)
+            self.assertEqual(height_n.edge_type,  EdgeTyp.III_NEGATIVE)
             self.assertFalse(height_n.is_positive_edge())
 
             self.assertEqual(height_p, height_n.as_positive())
@@ -118,9 +118,9 @@ class TestBox(unittest.TestCase):
             kerf=Dim(0.1, "kerf")
         )
     def test_edges(self):
-        self.assertEqual(self.box.length.edge_type, EdgeTyp.LENGTH_POSTIVE)
-        self.assertEqual(self.box.width.edge_type, EdgeTyp.WIDTH_POSTIVE)
-        self.assertEqual(self.box.height.edge_type, EdgeTyp.HEIGHT_POSITIVE)
+        self.assertEqual(self.box.length.edge_type, EdgeTyp.I_POSITIVE)
+        self.assertEqual(self.box.width.edge_type, EdgeTyp.II_POSITIVE)
+        self.assertEqual(self.box.height.edge_type, EdgeTyp.III_POSITIVE)
 
     def test_faces(self):
         # todo: update to FaceBuilder
@@ -342,6 +342,31 @@ class TestEdge(unittest.TestCase):
         p = face.build_path()
         # todo test 
         print("hi")
+    
+
+    def test_edge_by_length_I(self):
+        e1: FingerJointEdge = FingerJointEdge.create_I(Dim(42.0, "l"), k_factor=2, thickness=Dim(3, "t"), finger_count=3, kerf=None)
+        self.assertEqual(e1.full_length, 42.0)
+        self.assertEqual(e1.length,  42.0)
+        en = e1.as_negative()
+        self.assertEqual(en.full_length, 42.0)
+        self.assertEqual(en.length,  42.0 - 2*3.0)
+    
+    def test_edge_by_length_II(self):
+        e1: FingerJointEdge = FingerJointEdge.create_II(Dim(42.0, "l"), k_factor=2, thickness=Dim(3, "t"), finger_count=3, kerf=None)
+        self.assertEqual(e1.full_length, 42.0)
+        self.assertEqual(e1.length,  42.0)
+        en = e1.as_negative()
+        self.assertEqual(en.full_length, 42.0) # negative is also full length for edge II
+        self.assertEqual(en.length,  42.0)
+    
+    def test_edge_by_length_III(self):
+        e1: FingerJointEdge = FingerJointEdge.create_III(Dim(42.0, "l"), k_factor=2, thickness=Dim(3, "t"), finger_count=3, kerf=None)
+        self.assertEqual(e1.full_length, 42.0)
+        self.assertEqual(e1.length,  42.0-2*3.0) # edge 3 is smaller in positive and negative
+        en = e1.as_negative()
+        self.assertEqual(en.full_length, 42.0)
+        self.assertEqual(en.length,  42.0 - 2*3.0)
 
 
     def test_kerf(self):
@@ -406,13 +431,17 @@ def test_path_building():
 if __name__ == "__main__":
     # p = test_path_building()
 
-    # # e = StackableBottomTopEdge(Dim(15), Dim(10), Dim(100))
-    # e = FingerJointHolesEdge(finger=Dim(10), finger_count=Dim(5), notch=Dim(5), notch_count=Dim(4), thickness=Dim(3), kerf=Dim(0.1))
+
+    # plt.plot(N, r)
+    # plt.show(block=True)
+
+    # e = StackableBottomTopEdge(Dim(15), Dim(10), Dim(100))
+    # # e = FingerJointHolesEdge(finger=Dim(10), finger_count=Dim(5), notch=Dim(5), notch_count=Dim(4), thickness=Dim(3), kerf=Dim(0.1))
     # path = e.as_negative().make_path()
     # f, _ = plot_path(path)
-    # plt.show()
+    # plt.show(block=True)
     unittest.main()
-    # p2 = p.transform(reflect_on_x_axis)
-    # # todo test transformation for lines and consstrains!
+    # # p2 = p.transform(reflect_on_x_axis)
+    # # # todo test transformation for lines and consstrains!
 
     print("hi")

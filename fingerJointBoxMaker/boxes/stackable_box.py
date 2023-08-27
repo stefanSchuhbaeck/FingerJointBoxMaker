@@ -26,13 +26,13 @@ class StackableBox(Box):
     @classmethod
     def create(cls):
 
-        length: FingerJointEdge = None
+        length: FingerJointEdge = FingerJointEdge
         widht: FingerJointEdge = None
         height: FingerJointEdge = None
 
         #Face
-        bottom_top_front_face = StackableBottomTopEdge() # bottom, top with length.as_positive
-        bottom_top_side_face = StackableBottomTopEdge() # bottom, top with widht.as_positive
+        bottom_top_front_edge = StackableBottomTopEdge() # bottom, top with length.as_positive
+        bottom_top_side_edge = StackableBottomTopEdge() # bottom, top with width.as_positive
 
         hole_face = FingerJointHolesEdge()
         
@@ -46,41 +46,41 @@ class StackableBox(Box):
         )
         
         # FrontFace
-        height_mixin: FingerJointEdge = stackable_side_edge(edge=height.as_negative(), stand_h=bottom_top_front_face.stand_h)
+        height_mixin: FingerJointEdge = stackable_side_edge(edge=height.as_negative(), stand_h=bottom_top_front_edge.stand_h)
         fb:FacePathBuilder = FacePathBuilder()
         # bottom with stands for stacking
-        fb.add(EdgePathBuilder(bottom_top_front_face))
+        fb.add(EdgePathBuilder(bottom_top_front_edge))
         # left side with notches
         fb.add(EdgePathBuilder(height_mixin)).left_side_transform()
         # top with same shape as bootom to allow stacking
-        fb.add(EdgePathBuilder(bottom_top_front_face)).top_side_transfrom()
+        fb.add(EdgePathBuilder(bottom_top_front_edge)).top_side_transfrom()
         # right side with notches
         fb.add(EdgePathBuilder(height_mixin)).right_side_transfrom()
         # holes to fit bottom plate
         _e = EdgePathBuilder(hole_face).allow_concat().add_transfrom_mat(
-            mat_shift(dy=(bottom_top_front_face.stand_h + hole_face.thickness).value))
+            mat_shift(dy=(bottom_top_front_edge.stand_h + hole_face.thickness).value))
         fb.add(_e)
         front_face = Face(face_builder=fb, name="Front", plane=Plane.XZ)
 
         # SideFace
-        height_mixin: FingerJointEdge = stackable_side_edge(edge=height.as_positive(), stand_h=bottom_top_front_face.stand_h)
+        height_mixin: FingerJointEdge = stackable_side_edge(edge=height.as_positive(), stand_h=bottom_top_front_edge.stand_h)
         fb:FacePathBuilder = FacePathBuilder()
 
         # bottom with stands for stacking
-        fb.add(EdgePathBuilder(bottom_top_side_face))
+        fb.add(EdgePathBuilder(bottom_top_side_edge))
         
         # left side with notches
         fb.add(EdgePathBuilder(height_mixin)).left_side_transform()
         
         # top with same shape as bootom to allow stacking
-        fb.add(EdgePathBuilder(bottom_top_side_face)).top_side_transfrom()
+        fb.add(EdgePathBuilder(bottom_top_side_edge)).top_side_transfrom()
         
         # right side with notches
         fb.add(EdgePathBuilder(height_mixin)).right_side_transfrom()
 
         # holes to fit bottom plate
         _e = EdgePathBuilder(hole_face).allow_concat().add_transfrom_mat(
-            mat_shift(dy=(bottom_top_side_face.stand_h + hole_face.thickness).value))
+            mat_shift(dy=(bottom_top_side_edge.stand_h + hole_face.thickness).value))
         fb.add(_e)
         side_face = Face(face_builder=fb, name="Side", plane=Plane.YZ)
 

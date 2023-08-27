@@ -71,6 +71,14 @@ class Dim:
             name = name, 
             unit= unit if unit is not None else self.unit
             )
+    
+    def new_with_name_prefix(self, value: float, name_prefix, unit=None) -> Dim:
+        ret = Dim(
+            value=value, 
+            name=f"{name_prefix}_{self.name}", 
+            unit= unit if unit is not None else self.unit
+            )
+        return ret
 
     def __assert_compatable(self, other, opt):
         if (isinstance(other, Dim) and self.unit == other.unit):
