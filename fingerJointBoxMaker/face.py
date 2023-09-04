@@ -6,8 +6,8 @@ from fingerJointBoxMaker.edge import FingerJointEdge, EdgePathBuilder, StraightL
 from fingerJointBoxMaker.geometry import Path, PathConcatError, Plane, Line, PathBuilder, PathConsumer
 
 from fingerJointBoxMaker.transform import Transform, create_transform, mat_reflect_x, mat_reflect_y, mat_shift, mat_rot_90
-
 from fingerJointBoxMaker.export.plot import plot_path
+import logging
 
 class FaceConstraintProvider(Protocol):
 
@@ -58,11 +58,11 @@ class FacePathBuilder:
 
     
     def build(self) -> Path:
-        print("Build Face:")
+        logging.debug("Build Face:")
         path: Path = self.path_builder[0]()
         if len(self.path_builder) > 1:
             for idx, p_builder in enumerate(self.path_builder[1:]):
-                print(f"build append path {idx+1}/{len(self.path_builder)}")
+                logging.debug(f"build append path {idx+1}/{len(self.path_builder)}")
                 _p: Path = p_builder()
                 path = path.concat(_p, create_connecting_line=p_builder.concat_with_connecting_line)
                 
@@ -110,7 +110,7 @@ class Face:
 
     def build_path(self) -> Path:
 
-        print(f"Build path for face '{self.name}'")
+        logging.debug(f"Build path for face '{self.name}'")
         path: Path = self.face_builder.build()
 
         for consumer in self.post_path_consumer:

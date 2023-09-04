@@ -6,6 +6,7 @@ from abc import ABC
 from fingerJointBoxMaker.dimension import Dim
 from fingerJointBoxMaker.geometry import Path, PathConsumer, PathBuilder, PathConsumerByTransfrom
 from fingerJointBoxMaker.transform import Transform, create_transform
+import logging
 
 class EdgePathBuilder:
 
@@ -299,7 +300,7 @@ class FingerJointEdge(Edge):
             raise ValueError(f"given edge type sign does not match the sign of created edge. Edge: {ret} with edge type: {ret.edge_type} but provided type was {e_type}")
         
         if _finger_count is not None:
-            print(f"calculated finger count is {_finger_count} and will be rounded to {finger_count}. Edge length will be {ret.full_length()}")
+            logging.warning(f"calculated finger count is {_finger_count} and will be rounded to {finger_count}. Edge length will be {ret.full_length()}")
 
         return ret
 

@@ -10,6 +10,8 @@ import fingerJointBoxMaker.transform as t
 from dataclasses import dataclass, field
 from functools import partial
 from typing import List
+from argparse import Namespace
+from argparse import ArgumentParser
 
 from fingerJointBoxMaker.boxes.comon import Box
 from fingerJointBoxMaker.boxes.comon import add_origin_offset, add_perpendicular_constraints, add_first_line_h_or_v_constraint, add_equal_constrains_instead_of_dimensions, add_sktech_offset
@@ -18,7 +20,7 @@ from fingerJointBoxMaker.transform import Transform, create_transform, mat_refle
 from fingerJointBoxMaker.face import FacePathBuilder
 
 from fingerJointBoxMaker.export.plot import plot_path
-
+from fingerJointBoxMaker.export.svgwriter import BoxDrawing
 
 @dataclass
 class StackableBox(Box):
@@ -31,7 +33,12 @@ class StackableBox(Box):
         return [self.front_face, self.side_face, self.bottom_face]
 
     @classmethod
-    def create(cls, length: FingerJointEdge, width: FingerJointEdge, height: FingerJointEdge):
+    def create(
+        cls, 
+        length: FingerJointEdge, 
+        width: FingerJointEdge, 
+        height: FingerJointEdge):
+
 
         # dependent edges
         length_p_holes: FingerJointHolesEdge = length.as_holes_edge()
@@ -90,4 +97,43 @@ class StackableBox(Box):
 
         return cls(front_face=front_face, side_face=side_face, bottom_face=bottom_face)
 
+def stackable_ns(parser: ArgumentParser):
+
+    parser = parser.set_defaults(main=get_drawing)
+    return parser
+    
+
+
+def get_drawing(ns: Namespace):
+
+    t = Dim(ns.thickness)
+    b = StackableBox.create(
+        length=FingerJointEdge.create_I(Dim(ns.length, "l"), k_factor=4, thickness=t, finger_count=3),
+        width=FingerJointEdge.create_II(Dim(ns.width, "l"), k_factor=3, thickness=t, finger_count=3),
+        height=FingerJointEdge.create_III(Dim(ns.height, "l"), k_factor=3, thickness=t, finger_count=3),
+    )
+
+    drawing: BoxDrawing = BoxDrawing(
+            profile="full"
+        )
+
+    
+    t1 = create_transform(mat_shift(dx=10, dy=10))
+    p_bottom = b.build_face(b.bottom_face).transform(t1)
+    drawing.add(p_bottom, "bottom")
+
+    t2 = create_transform(mat_shift(dx=10, dy=10+p_bottom.bounding_box()[1][1]))
+    p_front1 = b.build_face(b.front_face).transform(t2)
+    t2 = create_transform(mat_shift(dy=10+p_front1.height()))
+    p_front2 = p_front1.transform(t2)
+
+    drawing.add(p_front1, "front1")
+    drawing.add(p_front2, "front2")
+
+    p_side1 = b.build_face(b.side_face).transform(create_transform(mat_shift(dy=10, dx=15 + p_bottom.bounding_box()[1][0])))
+    p_side2 = p_side1.transform(create_transform(mat_shift(dy=10+p_side1.height())))
+    drawing.add(p_side1, "side1")
+    drawing.add(p_side2, "side2")
+
+    return drawing
 

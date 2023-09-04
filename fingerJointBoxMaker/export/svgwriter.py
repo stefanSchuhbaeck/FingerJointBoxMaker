@@ -1,15 +1,15 @@
 from __future__ import annotations
 from typing import List
-from fingerJointBoxMaker.boxes.stackable_box import StackableBox
-from fingerJointBoxMaker.dimension import Dim
-from fingerJointBoxMaker.edge import FingerJointEdge
+# from fingerJointBoxMaker.boxes.stackable_box import StackableBox
+# from fingerJointBoxMaker.dimension import Dim
+# from fingerJointBoxMaker.edge import FingerJointEdge
 from fingerJointBoxMaker.geometry import Path, Line
 
 import svgwrite as svg
 import svgwrite.path as spath
 import numpy as np
 
-from fingerJointBoxMaker.transform import create_transform, mat_shift
+# from fingerJointBoxMaker.transform import create_transform, mat_shift
 
 class PathExporter:
 
@@ -100,11 +100,14 @@ class BoxDrawing:
         self.names.append(name)
         return self
     
-    def _build_drawing(self):
+    def _build_drawing(self, path):
         bound = self.bbox()
-        px_to_mm = 0.2645833333 
+        # px_to_mm = 0.2645833333 
         max_dim = (bound[1] + 30) 
-        self.drawing = svg.Drawing(**self.svgargs, size=(f"{max_dim[0]}mm", f"{max_dim[1]}mm"), viewBox=f"0 0 {max_dim[0]} {max_dim[1]}")
+        self.drawing = svg.Drawing(
+            size=(f"{max_dim[0]}mm", f"{max_dim[1]}mm"), 
+            viewBox=f"0 0 {max_dim[0]} {max_dim[1]}", 
+            **self.svgargs)
     
     def bbox(self):
         bbox = np.concatenate([p.bounding_box() for p in self.paths])
@@ -112,12 +115,17 @@ class BoxDrawing:
         ret = np.append(ret, [bbox.max(axis=0)]).reshape((2,2))
         return ret
     
-    def save(self):
+    def save(self, path):
         if self.drawing is None:
-            self._build_drawing()
+            self._build_drawing(path)
         for p, name in zip(self.paths, self.names):
             self.export_path(p, name=name)
-        self.drawing.save(pretty=True, indent=2)
+        if isinstance(path, str):
+            with open(path, "w+", encoding="utf-8") as fd:
+                self.drawing.write(fd, pretty=True, indent=2)
+        else:
+            self.drawing.write(path, pretty=True, indent=2)
+        
 
     def export_path(self, path: Path, name: str):
         p = PathExporter()
@@ -125,38 +133,38 @@ class BoxDrawing:
         self.drawing.add(p.as_hairline(id=name))
 
 
-if __name__ == "__main__":
-    b = StackableBox.create(
-        length=FingerJointEdge.create_I(Dim(50.0, "l"), k_factor=4, thickness=Dim(3.0, "t"), finger_count=3),
-        width=FingerJointEdge.create_II(Dim(40.0, "l"), k_factor=3, thickness=Dim(3.0, "t"), finger_count=3),
-        height=FingerJointEdge.create_III(Dim(30.0, "l"), k_factor=3, thickness=Dim(3.0, "t"), finger_count=3),
-    )
+# if __name__ == "__main__":
+#     b = StackableBox.create(
+#         length=FingerJointEdge.create_I(Dim(50.0, "l"), k_factor=4, thickness=Dim(3.0, "t"), finger_count=3),
+#         width=FingerJointEdge.create_II(Dim(40.0, "l"), k_factor=3, thickness=Dim(3.0, "t"), finger_count=3),
+#         height=FingerJointEdge.create_III(Dim(30.0, "l"), k_factor=3, thickness=Dim(3.0, "t"), finger_count=3),
+#     )
 
-    drawing: BoxDrawing = BoxDrawing(
-            filename = "/home/sts/upstream/github.com/stefanSchuhbaeck/FingerJointBoxMaker/fingerJointBoxMaker/out/out2.svg", 
-            profile="full"
-        )
+#     drawing: BoxDrawing = BoxDrawing(
+#             filename = "/home/sts/upstream/github.com/stefanSchuhbaeck/FingerJointBoxMaker/fingerJointBoxMaker/out/out2.svg", 
+#             profile="full"
+#         )
 
 
 
     
-    t1 = create_transform(mat_shift(dx=30, dy=30))
-    p_bottom = b.build_face(b.bottom_face).transform(t1)
-    drawing.add(p_bottom, "bottom")
+#     t1 = create_transform(mat_shift(dx=30, dy=30))
+#     p_bottom = b.build_face(b.bottom_face).transform(t1)
+#     drawing.add(p_bottom, "bottom")
 
 
-    t2 = create_transform(mat_shift(dx=30, dy=10+p_bottom.bounding_box()[1][1]))
-    p_front1 = b.build_face(b.front_face).transform(t2)
-    t2 = create_transform(mat_shift(dy=10+p_front1.height()))
-    p_front2 = p_front1.transform(t2)
+#     t2 = create_transform(mat_shift(dx=30, dy=10+p_bottom.bounding_box()[1][1]))
+#     p_front1 = b.build_face(b.front_face).transform(t2)
+#     t2 = create_transform(mat_shift(dy=10+p_front1.height()))
+#     p_front2 = p_front1.transform(t2)
 
-    drawing.add(p_front1, "front1")
-    drawing.add(p_front2, "front2")
+#     drawing.add(p_front1, "front1")
+#     drawing.add(p_front2, "front2")
 
-    p_side1 = b.build_face(b.side_face).transform(create_transform(mat_shift(dy=30, dx=15 + p_bottom.bounding_box()[1][0])))
-    p_side2 = p_side1.transform(create_transform(mat_shift(dy=10+p_side1.height())))
-    drawing.add(p_side1, "side1")
-    drawing.add(p_side2, "side2")
+#     p_side1 = b.build_face(b.side_face).transform(create_transform(mat_shift(dy=30, dx=15 + p_bottom.bounding_box()[1][0])))
+#     p_side2 = p_side1.transform(create_transform(mat_shift(dy=10+p_side1.height())))
+#     drawing.add(p_side1, "side1")
+#     drawing.add(p_side2, "side2")
 
-    drawing.save()
+#     drawing.save()
 
