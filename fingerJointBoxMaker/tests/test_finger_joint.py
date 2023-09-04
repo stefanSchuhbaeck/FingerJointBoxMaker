@@ -12,13 +12,14 @@ from matplotlib import pyplot as plt
 sys.path.insert(0,os.path.join(os.path.dirname(__file__),"../.."))
 import numpy as np
 
-from fingerJointBoxMaker.boxes.simple_box import SimpleBox, SimpleBoxStraigtTop
-from fingerJointBoxMaker.geometry import Path, Line
+from fingerJointBoxMaker.boxes.simple_box import SimpleBox, SimpleBoxStraightTop
+from fingerJointBoxMaker.boxes.stackable_box import StackableBox
+from fingerJointBoxMaker.geometry import Path, Line, PathConcatError
 from fingerJointBoxMaker.dimension import Dim
 import fingerJointBoxMaker.transform as t
 from fingerJointBoxMaker.edge import FingerJointEdge, EdgeTyp, StackableBottomTopEdge, FingerJointHolesEdge
 from fingerJointBoxMaker.face import Face
-from fingerJointBoxMaker.export.plot import plot_points, plot_path
+from fingerJointBoxMaker.export.plot import plot_paths, plot_points, plot_path
 
 def line_list_to_points(lines: List[Line]):
     points = lines[0].line
@@ -414,7 +415,7 @@ def test_path_building():
     box_path1 = b.build()
     f, _ = plot_path(box_path1[1])
     f.show()
-    b = SimpleBoxStraigtTop.eqaul_from_finger_count(
+    b = SimpleBoxStraightTop.eqaul_from_finger_count(
         length_finger_count=Dim(5, "length_finger_count", ""),
         width_finger_count=Dim(3, "width_finger_count", ""),
         height_finger_count=Dim(4, "height_finger", ""),
@@ -429,18 +430,22 @@ def test_path_building():
     print("hi")
 
 if __name__ == "__main__":
-    # p = test_path_building()
 
+    b = StackableBox.create(
+        length=FingerJointEdge.create_I(Dim(100.0, "l"), k_factor=6, thickness=Dim(3.0, "t"), finger_count=3),
+        width=FingerJointEdge.create_II(Dim(60.0, "l"), k_factor=4, thickness=Dim(3.0, "t"), finger_count=3),
+        height=FingerJointEdge.create_III(Dim(50.0, "l"), k_factor=4, thickness=Dim(3.0, "t"), finger_count=3),
+    )
 
-    # plt.plot(N, r)
-    # plt.show(block=True)
-
-    # e = StackableBottomTopEdge(Dim(15), Dim(10), Dim(100))
-    # # e = FingerJointHolesEdge(finger=Dim(10), finger_count=Dim(5), notch=Dim(5), notch_count=Dim(4), thickness=Dim(3), kerf=Dim(0.1))
+    fig, axes = plt.subplots(2,2)  
+    plot_path(b.build_face(b.bottom_face), axes[0][0], color="blue")
+    plot_path(b.build_face(b.front_face), axes[1][0], color="red")
+    plot_path(b.build_face(b.side_face), axes[0][1], color="green")
+    fig.show()
     # path = e.as_negative().make_path()
     # f, _ = plot_path(path)
     # plt.show(block=True)
-    unittest.main()
+    # unittest.main()
     # # p2 = p.transform(reflect_on_x_axis)
     # # # todo test transformation for lines and consstrains!
 

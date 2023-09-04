@@ -2,7 +2,7 @@ from fingerJointBoxMaker.dimension import  Dim
 from fingerJointBoxMaker.constrains import Constraint
 from fingerJointBoxMaker.geometry import Line, Path, Orientation, Plane
 from fingerJointBoxMaker.boxes.comon import Box
-from fingerJointBoxMaker.boxes.simple_box import SimpleBox, SimpleBoxStraigtTop
+from fingerJointBoxMaker.boxes.simple_box import SimpleBox, SimpleBoxStraightTop
 from fingerJointBoxMaker.constraints_impl import *
 
 print_msg_f = None

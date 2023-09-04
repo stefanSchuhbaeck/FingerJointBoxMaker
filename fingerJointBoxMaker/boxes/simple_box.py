@@ -145,7 +145,7 @@ class SimpleBox(Box):
 
 
 
-class SimpleBoxStraigtTop(SimpleBox):
+class SimpleBoxStraightTop(SimpleBox):
 
 
     @classmethod

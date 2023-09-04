@@ -104,11 +104,11 @@ class Line:
         return tuple(self.line.reshape(-1))
 
     @property
-    def start(self):
+    def start(self) ->NDArray:
         return self.line[0]
 
     @property
-    def end(self):
+    def end(self) -> NDArray:
         return self.line[1]
 
 class PathConsumer(Protocol):
@@ -137,10 +137,14 @@ class PathConsumerByTransfrom():
         return path.transform(self.transfrom)
 
 
+class PathConcatError(Exception):
+    def __init__(self, *args: object) -> None:
+        super().__init__(*args)
+
 class Path:
 
     def __init__(self) -> None:
-        self.points: np.array = np.array([[]])
+        self.points: NDArray = np.array([[]])
         self.lines: List[Line] = []
         self.constraints: List[Constraint] = []
     
@@ -148,6 +152,19 @@ class Path:
     def zero(cls):
         p = cls().add_point(0., 0.)
         return p
+    
+    def bounding_box(self) -> NDArray:
+        ret = self.points.min(axis=0)
+        ret = np.append(ret, self.points.max(axis=0), axis=0).reshape(2,2)
+        return ret
+    
+    def width(self) -> float:
+        b = self.bounding_box()
+        return(b[1, :] - b[0, :])[0]
+    
+    def height(self) -> float:
+        b = self.bounding_box()
+        return (b[1, :] - b[0, :])[1]
 
     def copy(self) -> Path:
         return copy.deepcopy(self)
@@ -229,15 +246,23 @@ class Path:
     def add_to_last(self, p: np.array):
         if len(self.points) == 0:
             raise ValueError("Path has no initial point")
-        self.points = np.append(self.points, [self.points[-1] + p], axis=0)
-        # self.points.append(self.points[-1] + p)
+        p = self.points[-1] + p
+        self._append_points(p[0], p[1])
 
     def add_point(self, x, y):
         if self.points.shape == (1, 0):
             self.points = np.array([[x, y]])
         else:
-            self.points = np.append(self.points, [[x, y]], axis=0)
+            self._append_points(x, y)
         return self
+
+    def _append_points(self, x, y):
+        if not any( [isinstance(x, i) for i in [int, float]]):
+            raise ValueError(f"x value is not an int or float. Got {type(x)}")
+        if not any( [isinstance(y, i) for i in [int, float]]):
+            raise ValueError(f"y value is not an int or float. Got {type(y)}")
+        
+        self.points = np.append(self.points, [[x, y]], axis=0)
 
     def _get_vec_dim(self, x, y) -> Tuple[np.array, Dim|None]:
         _dim = None
@@ -385,11 +410,11 @@ class Path:
             path = path.transform(create_transform(mat_shift(dx=offset[0], dy=offset[1])))
             start_end_equal = all(self.points[-1] == path.points[0])
             if not start_end_equal:
-                raise ValueError("warning: translating path to fix small offset error did not work.")
+                raise PathConcatError("warning: translating path to fix small offset error did not work.")
 
 
         if not create_connecting_line and not start_end_equal:
-            raise ValueError("Paths do not have matching end-start points and create_connecting_line is false")
+            raise PathConcatError(f"Paths do not have matching end-start points and create_connecting_line is false. {self.points[-1]} !- {path.points[0]}", self, path)
 
         p1: Path = self.copy()
         p2: Path = path.copy()

@@ -34,7 +34,7 @@ class EdgePathBuilder:
         return self
         
 
-    def add_transfrom_mat(self, *mat) -> EdgePathBuilder:
+    def add_transform_mat(self, *mat) -> EdgePathBuilder:
         return self.add_transfrom(create_transform(*mat))
 
     def add_transfrom(self, transfrom: Transform) -> EdgePathBuilder:
@@ -225,22 +225,23 @@ class StraightLineEdge(Edge):
             return path.h(self._length)
 
 class StackableBottomTopEdge(Edge):
-    def __init__(self, stand_l: Dim, stand_h: Dim, stand_notch: Dim) -> None:
+    def __init__(self, stand_l: Dim, stand_h: Dim, edge_length: Dim) -> None:
         super().__init__()
         self.stand_l: Dim = stand_l
         self.stand_h: Dim = stand_h
-        self.stand_notch: Dim = stand_notch
+        self.edge_length: Dim = edge_length
     @property
     def length(self) -> float:
-        return self.stand_h.value*2 + self.stand_notch.value
+        return self.edge_length.value
     
     def build_path(self, path: Path) -> Path:
-        val = self.stand_h.value/3
+        val = self.stand_h.value/2
+        stand_notch = self.edge_length - 2*self.stand_l - self.stand_h
 
         path.h_dim(self.stand_l)
         path.v(val)
         path.line_to_rel(val, val)
-        path.h_dim(self.stand_notch - 4*val)
+        path.h_dim(stand_notch)
         path.line_to_rel(val, -val)
         path.v(-val)
         path.h_dim(self.stand_l)
@@ -347,6 +348,9 @@ class FingerJointEdge(Edge):
         else:
             ret.edge_type = EdgeTyp.III_NEGATIVE
         return ret
+
+    def as_holes_edge(self) ->FingerJointHolesEdge:
+        return FingerJointHolesEdge.from_finger_joint_edge(self)
 
     def is_positive_edge(self):
         """An edge is postive if the number of fingers is greater than the number notches."""
@@ -463,6 +467,12 @@ class FingerJointEdge(Edge):
 
 class FingerJointHolesEdge(FingerJointEdge):
 
+    @classmethod
+    def from_finger_joint_edge(cls, e: FingerJointEdge):
+        ret =  cls(e.finger, e.finger_count, e.notch, e.notch_count, e.thickness, e.kerf)
+        ret.edge_type = e.edge_type
+        return ret
+
     def __init__(self, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim, kerf: Dim | None = None) -> None:
         super().__init__(finger, finger_count, notch, notch_count, thickness, kerf)
 
@@ -491,7 +501,7 @@ class FingerJointHolesEdge(FingerJointEdge):
         path: Path = Path.zero()
 
         for i in range(self.rep_count()):
-            if self.is_positive_edge(): # postive edge: finger->notch->finger
+            if self.is_positive_edge(): # positive edge: finger->notch->finger
                 path.h_dim(self.get_finger(i==0)).as_construciont_line()
                 path = self._hole(path) # hole
             else: # negative edge: finger->notch->finger
@@ -503,10 +513,34 @@ class FingerJointHolesEdge(FingerJointEdge):
             path = self._hole(path)
         return path
 
-def stackable_side_edge(edge: FingerJointEdge, stand_h: Dim) -> FingerJointEdge:
+class StackableSideEdge(FingerJointEdge):
 
-    def append_start(path: Path) -> Path:
-        path.h_dim(stand_h + edge.thickness)
+    @classmethod
+    def from_edge(cls, e: FingerJointEdge, stand_h: Dim) -> StackableSideEdge:
+        return cls(
+            stand_h = stand_h, 
+            finger = e.finger,
+            finger_count = e.finger_count,
+            notch = e.notch,
+            notch_count = e.notch_count,
+            thickness = e.thickness,
+            kerf = e.kerf,
+        )
+
+    def __init__(self, stand_h: Dim, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim, kerf: Dim | None = None) -> None:
+        super().__init__(finger, finger_count, notch, notch_count, thickness, kerf)
+        self.stand_h: Dim = stand_h
+        self.path_pre_processors.insert(0, self.append_start) 
+    
+    def append_start(self, path: Path) -> Path:
+        path.h_dim(self.stand_h + self.thickness)
         return path
-    edge.path_pre_processors.insert(0, append_start)
-    return edge
+    
+    @property
+    def length(self) -> float:
+        return super().length + self.stand_h.value + self.thickness.value
+    
+    @property
+    def full_length(self) -> float:
+        return super().full_length + self.stand_h.value + self.thickness.value
+
