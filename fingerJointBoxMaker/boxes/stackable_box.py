@@ -4,7 +4,7 @@ from fingerJointBoxMaker.dimension import Dim
 from fingerJointBoxMaker.edge import FingerJointEdge, StackableBottomTopEdge, FingerJointHolesEdge, StackableSideEdge
 from fingerJointBoxMaker.face import Face
 from fingerJointBoxMaker.geometry import Path, PathConsumerByTransfrom, Plane
-from fingerJointBoxMaker.boxes.comon import add_dimension_constraint
+from fingerJointBoxMaker.boxes.comon import add_dimension_constraint, max_equal_finger_configuration
 import fingerJointBoxMaker.transform as t
 
 from dataclasses import dataclass, field
@@ -107,10 +107,14 @@ def stackable_ns(parser: ArgumentParser):
 def get_drawing(ns: Namespace):
 
     t = Dim(ns.thickness)
+    ab_length, N_l = max_equal_finger_configuration(ns.bound[0], ns.notch_count(ns, 0), thickness=t.value)
+    ab_width, N_w = max_equal_finger_configuration(ns.bound[1], ns.notch_count(ns, 1), thickness=t.value)
+    ab_height, N_h = max_equal_finger_configuration(ns.bound[2], ns.notch_count(ns, 2), thickness=t.value)
+
     b = StackableBox.create(
-        length=FingerJointEdge.create_I(Dim(ns.length, "l"), k_factor=4, thickness=t, finger_count=3),
-        width=FingerJointEdge.create_II(Dim(ns.width, "l"), k_factor=3, thickness=t, finger_count=3),
-        height=FingerJointEdge.create_III(Dim(ns.height, "l"), k_factor=3, thickness=t, finger_count=3),
+        length=FingerJointEdge.create_I(length=Dim(ns.bound[0], "l"), finger_notch_size=Dim(ab_length, "a_length"), thickness=t, finger_count=N_l),
+        width=FingerJointEdge.create_II(length=Dim(ns.bound[1], "l"), finger_notch_size=Dim(ab_width, "a_width"), thickness=t, finger_count=N_w),
+        height=FingerJointEdge.create_III(length=Dim(ns.bound[2], "l"), finger_notch_size=Dim(ab_height, "a_height"), thickness=t, finger_count=N_h),
     )
 
     drawing: BoxDrawing = BoxDrawing(

@@ -278,7 +278,22 @@ class FingerJointEdge(Edge):
         self.path_transforms: List[Transform]
     
     @classmethod
-    def create_by_length(cls, e_type: EdgeTyp, length: Dim, k_factor:int, thickness: Dim, finger_count: int = None, ratio_ba: float = None, kerf: Dim=None) -> None:
+    def create_by_length(cls, e_type: EdgeTyp, length: Dim, finger_notch_size: Dim,  finger_count: int, thickness: Dim, kerf: Dim=None) -> None:
+
+        finger_count_dim: Dim = length.new_with_name_prefix(finger_count, "N", unit="")
+        notch_count_dim: Dim = Dim(finger_count-1, name=f"{finger_count_dim.name} -1", unit="")
+
+        ret = cls(finger_notch_size, finger_count_dim, finger_notch_size, notch_count_dim, thickness, kerf)
+        if ret.is_positive_edge() and e_type.is_positive():
+            ret.edge_type = e_type
+        elif not e_type.is_positive():
+            ret.edge_type = e_type
+        else:
+            raise ValueError(f"given edge type sign does not match the sign of created edge. Edge: {ret} with edge type: {ret.edge_type} but provided type was {e_type}")
+        
+        return ret
+    @classmethod
+    def create_by_length_relative(cls, e_type: EdgeTyp, length: Dim, k_factor:int, thickness: Dim, finger_count: int = None, ratio_ba: float = None, kerf: Dim=None) -> None:
         _finger_count = None
         if finger_count is not None:
             ratio_ba = ratio_b_a(x = length.value, N=finger_count, k=k_factor, t=thickness.value)
@@ -306,22 +321,31 @@ class FingerJointEdge(Edge):
 
 
     @classmethod
-    def create_I(cls, length: Dim, k_factor:int, thickness: Dim, finger_count: int = None, ratio_ba: float = None, kerf: Dim=None):
+    def create_I_relative(cls, length: Dim, k_factor:int, thickness: Dim, finger_count: int = None, ratio_ba: float = None, kerf: Dim=None):
         """Create positive I+ edge with length and either finger_count by given ratio_ba or the other way around.
         Note: if ratio_ba is given the created edge will not have the exact length due to rounding errors for finger count."""
-        return cls.create_by_length(EdgeTyp.I_POSITIVE, length=length, k_factor=k_factor, thickness=thickness, finger_count=finger_count, ratio_ba=ratio_ba, kerf=kerf)
+        return cls.create_by_length_relative(EdgeTyp.I_POSITIVE, length=length, k_factor=k_factor, thickness=thickness, finger_count=finger_count, ratio_ba=ratio_ba, kerf=kerf)
+    @classmethod
+    def create_I(cls, length: Dim, finger_notch_size: Dim, thickness: Dim, finger_count: int, kerf: Dim=None):
+        return cls.create_by_length(EdgeTyp.I_POSITIVE, length=length, finger_notch_size=finger_notch_size, thickness=thickness, finger_count=finger_count, kerf=kerf)
 
     @classmethod
-    def create_II(cls, length: Dim, k_factor:int, thickness: Dim, finger_count: int = None, ratio_ba: float = None, kerf: Dim=None):
+    def create_II_relative(cls, length: Dim, k_factor:int, thickness: Dim, finger_count: int = None, ratio_ba: float = None, kerf: Dim=None):
         """Create positive II+ edge with length and either finger_count by given ratio_ba or the other way around.
         Note: if ratio_ba is given the created edge will not have the exact length due to rounding errors for finger count."""
-        return cls.create_by_length(EdgeTyp.II_POSITIVE, length=length, k_factor=k_factor, thickness=thickness, finger_count=finger_count, ratio_ba=ratio_ba, kerf=kerf)
+        return cls.create_by_length_relative(EdgeTyp.II_POSITIVE, length=length, k_factor=k_factor, thickness=thickness, finger_count=finger_count, ratio_ba=ratio_ba, kerf=kerf)
+    @classmethod
+    def create_II(cls, length: Dim, finger_notch_size: Dim, thickness: Dim, finger_count: int, kerf: Dim=None):
+        return cls.create_by_length(EdgeTyp.II_POSITIVE, length=length, finger_notch_size=finger_notch_size, thickness=thickness, finger_count=finger_count, kerf=kerf)
 
     @classmethod
-    def create_III(cls, length: Dim, k_factor:int, thickness: Dim, finger_count: int = None, ratio_ba: float = None, kerf: Dim=None):
+    def create_III_relative(cls, length: Dim, k_factor:int, thickness: Dim, finger_count: int = None, ratio_ba: float = None, kerf: Dim=None):
         """Create positive III+ edge with length and either finger_count by given ratio_ba or the other way around.
         Note: if ratio_ba is given the created edge will not have the exact length due to rounding errors for finger count."""
-        return cls.create_by_length(EdgeTyp.III_POSITIVE, length=length, k_factor=k_factor, thickness=thickness, finger_count=finger_count, ratio_ba=ratio_ba, kerf=kerf)
+        return cls.create_by_length_relative(EdgeTyp.III_POSITIVE, length=length, k_factor=k_factor, thickness=thickness, finger_count=finger_count, ratio_ba=ratio_ba, kerf=kerf)
+    @classmethod
+    def create_III(cls, length: Dim, finger_notch_size: Dim, thickness: Dim, finger_count: int, kerf: Dim=None):
+        return cls.create_by_length(EdgeTyp.III_POSITIVE, length=length, finger_notch_size=finger_notch_size, thickness=thickness, finger_count=finger_count, kerf=kerf)
 
     @classmethod
     def as_length(cls, finger: Dim, finger_count: Dim, notch: Dim, notch_count: Dim, thickness: Dim, kerf: Dim=None) -> None:

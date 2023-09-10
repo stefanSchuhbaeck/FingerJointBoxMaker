@@ -346,7 +346,7 @@ class TestEdge(unittest.TestCase):
     
 
     def test_edge_by_length_I(self):
-        e1: FingerJointEdge = FingerJointEdge.create_I(Dim(42.0, "l"), k_factor=2, thickness=Dim(3, "t"), finger_count=3, kerf=None)
+        e1: FingerJointEdge = FingerJointEdge.create_I_relative(Dim(42.0, "l"), k_factor=2, thickness=Dim(3, "t"), finger_count=3, kerf=None)
         self.assertEqual(e1.full_length, 42.0)
         self.assertEqual(e1.length,  42.0)
         en = e1.as_negative()
@@ -354,7 +354,7 @@ class TestEdge(unittest.TestCase):
         self.assertEqual(en.length,  42.0 - 2*3.0)
     
     def test_edge_by_length_II(self):
-        e1: FingerJointEdge = FingerJointEdge.create_II(Dim(42.0, "l"), k_factor=2, thickness=Dim(3, "t"), finger_count=3, kerf=None)
+        e1: FingerJointEdge = FingerJointEdge.create_II_relative(Dim(42.0, "l"), k_factor=2, thickness=Dim(3, "t"), finger_count=3, kerf=None)
         self.assertEqual(e1.full_length, 42.0)
         self.assertEqual(e1.length,  42.0)
         en = e1.as_negative()
@@ -362,7 +362,7 @@ class TestEdge(unittest.TestCase):
         self.assertEqual(en.length,  42.0)
     
     def test_edge_by_length_III(self):
-        e1: FingerJointEdge = FingerJointEdge.create_III(Dim(42.0, "l"), k_factor=2, thickness=Dim(3, "t"), finger_count=3, kerf=None)
+        e1: FingerJointEdge = FingerJointEdge.create_III_relative(Dim(42.0, "l"), k_factor=2, thickness=Dim(3, "t"), finger_count=3, kerf=None)
         self.assertEqual(e1.full_length, 42.0)
         self.assertEqual(e1.length,  42.0-2*3.0) # edge 3 is smaller in positive and negative
         en = e1.as_negative()
@@ -432,9 +432,9 @@ def test_path_building():
 if __name__ == "__main__":
 
     b = StackableBox.create(
-        length=FingerJointEdge.create_I(Dim(100.0, "l"), k_factor=6, thickness=Dim(3.0, "t"), finger_count=3),
-        width=FingerJointEdge.create_II(Dim(60.0, "l"), k_factor=4, thickness=Dim(3.0, "t"), finger_count=3),
-        height=FingerJointEdge.create_III(Dim(50.0, "l"), k_factor=4, thickness=Dim(3.0, "t"), finger_count=3),
+        length=FingerJointEdge.create_I_relative(Dim(100.0, "l"), k_factor=6, thickness=Dim(3.0, "t"), finger_count=3),
+        width=FingerJointEdge.create_II_relative(Dim(60.0, "l"), k_factor=4, thickness=Dim(3.0, "t"), finger_count=3),
+        height=FingerJointEdge.create_III_relative(Dim(50.0, "l"), k_factor=4, thickness=Dim(3.0, "t"), finger_count=3),
     )
 
     fig, axes = plt.subplots(2,2)  

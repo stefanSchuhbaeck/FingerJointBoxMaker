@@ -21,10 +21,13 @@ def build_parser():
         prog="FingerJointBoxMaker",
     )
     parent.add_argument("-o", "--output",  help="Save output csv in path. Default standard out.", required=False, default=sys.stdout)
-    parent.add_argument("-L", "--length", type=float, help="length in mm")
-    parent.add_argument("-W", "--width", type=float, help="width in mm")
-    parent.add_argument("-H", "--height", type=float, help="height in mm")
+
+    #equal finger/notch setup
+    parent.add_argument("--bound", type=float, help="width length height  (space separated)", nargs=3)
+    parent.add_argument("--finger-count", dest="finger_counts", help="up to 3 integers giving the number of finger for length, width and height", nargs="*")
+    parent.add_argument("--finger-default-count", dest="finger_default", default=3, help="default number of fingers for each edge")
     parent.add_argument("-T", "--thickness", type=float, help="martial thickness in mm, Default(3.0)", default=3.0)
+    parent.set_defaults(notch_count=_notch_count)
 
     sub_parser = parent.add_subparsers(title="Boxtypes")
 
@@ -33,6 +36,15 @@ def build_parser():
         )
 
     return parent.parse_args()
+
+
+def _notch_count(ns: argparse.Namespace, i):
+    if ns.finger_counts is not None and len(ns.finger_counts) > i:
+        return ns.finger_counts[i]
+    else:
+        return ns.finger_default
+
+
 
 
 if __name__ == "__main__":

@@ -96,5 +96,15 @@ def add_first_line_h_or_v_constraint(path: Path, face: Face) -> Path:
 def add_dimension_constraint(path: Path, face: Face) -> Path:
     path.append_constraint(DimenssionConstraint(path))
     return path
-    
 
+def max_equal_finger_configuration(length: float, max_finger: int, thickness: float = 3.0):
+    if length < 3*thickness:
+        raise ValueError(f"length must be at least 3 times the thickness='{thickness}', got {length}")
+    N = 2*max_finger-1
+    while(N >=3):
+        x = length / N
+        if x >= thickness:
+            return x, int((N+1)/2)
+        N -= 1
+    raise ValueError(f"length must be at least 3 times the thickness='{thickness}', got {length}")
+    
